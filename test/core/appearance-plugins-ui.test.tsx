@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
-import { writePlugin } from '../../src/core/market';
+import { writeCachedCatalog, writePlugin } from '../../src/core/market';
 import { MARKET_URL } from '../../src/core/market';
 import { fixture, launch, openFile, press, pressEscape, runCommand, until } from '../helpers';
 
@@ -258,6 +258,40 @@ test('the plugins page can refresh the market', async () => {
 			const frame = t.captureCharFrame();
 			return frame.includes('Plugin market: 1 plugin') && frame.includes('Install Contrast 2.0.0');
 		});
+
+		expect(requested).toEqual([
+			'https://example.test/market/index.json',
+			'https://example.test/market/index.json',
+		]);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
+
+test('opening the plugins page refreshes a still-fresh cached market once', async () => {
+	const realFetch = globalThis.fetch;
+	const requested: string[] = [];
+	writeCachedCatalog([], Date.now());
+	globalThis.fetch = ((url: string) => {
+		requested.push(String(url));
+		return Promise.resolve(
+			new Response(
+				JSON.stringify({
+					plugins: [{ id: 'contrast', name: 'Contrast', version: '2.0.0' }],
+				}),
+			),
+		);
+	}) as typeof fetch;
+	try {
+		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+			pluginRegistry: 'https://example.test/market',
+			pluginUpdates: false,
+		});
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Install Contrast 2.0.0'));
+		await pressEscape(t);
+		await runCommand(t, 'Plugin manager');
+		await until(t, () => t.captureCharFrame().includes('Install Contrast 2.0.0'));
 
 		expect(requested).toEqual(['https://example.test/market/index.json']);
 	} finally {

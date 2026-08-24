@@ -270,6 +270,17 @@ export function createAppearancePluginUi(deps: {
 	const [open, setOpen] = createSignal(false);
 	const [marketVersion, setMarketVersion] = createSignal(0);
 	const refreshMarket = () => setMarketVersion((version) => version + 1);
+	let opened = false;
+	const refreshOnFirstOpen = () => {
+		if (opened) return;
+		opened = true;
+		void (async () => {
+			const catalog = await fetchCatalog(deps.config.pluginRegistry);
+			if (!catalog) return;
+			writeCachedCatalog(catalog, Date.now());
+			refreshMarket();
+		})();
+	};
 	return {
 		open,
 		choices: () => {
@@ -280,7 +291,10 @@ export function createAppearancePluginUi(deps: {
 				loadLocalLspServers(deps.rootDir).plugins,
 			);
 		},
-		show: () => setOpen(true),
+		show: () => {
+			refreshOnFirstOpen();
+			setOpen(true);
+		},
 		close: () => setOpen(false),
 		pick: (choice: string) =>
 			pickAppearancePlugin(choice, {

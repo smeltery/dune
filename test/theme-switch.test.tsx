@@ -119,6 +119,8 @@ test('plain identifiers stay readable against the background in every theme', as
 test('theme registry exposes every palette with stable chrome keys', () => {
 	const uiKeys = Object.keys(THEMES.dark.ui).toSorted() as (keyof ThemeUi)[];
 	expect(themeIds()).toContain('0x96f');
+	expect(themeIds()).toContain('hearth-dark');
+	expect(themeIds()).toContain('hearth-light-teal');
 	expect(themeIds()).toContain('iceberg-dark');
 	expect(themeIds()).toContain('iceberg-light');
 	expect(themeIds()).toContain('monokai');

@@ -17,6 +17,14 @@ import { githubDark } from './github-dark';
 import { githubLight } from './github-light';
 import { gruvboxDark } from './gruvbox-dark';
 import { gruvboxLight } from './gruvbox-light';
+import {
+	hearthDark,
+	hearthDarkAzure,
+	hearthDarkTeal,
+	hearthLight,
+	hearthLightAzure,
+	hearthLightTeal,
+} from './hearth';
 import { icebergDark } from './iceberg-dark';
 import { icebergLight } from './iceberg-light';
 import { kanagawaDragon } from './kanagawa-dragon';
@@ -55,6 +63,12 @@ export const THEME_ENTRIES = [
 	['flexoki-light', flexokiLight],
 	['gruvbox', gruvboxDark],
 	['gruvbox-light', gruvboxLight],
+	['hearth-dark', hearthDark],
+	['hearth-light', hearthLight],
+	['hearth-dark-azure', hearthDarkAzure],
+	['hearth-light-azure', hearthLightAzure],
+	['hearth-dark-teal', hearthDarkTeal],
+	['hearth-light-teal', hearthLightTeal],
 	['iceberg-dark', icebergDark],
 	['iceberg-light', icebergLight],
 	['kanagawa-wave', kanagawaWave],
