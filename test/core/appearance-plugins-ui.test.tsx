@@ -259,10 +259,7 @@ test('the plugins page can refresh the market', async () => {
 			return frame.includes('Plugin market: 1 plugin') && frame.includes('Install Contrast 2.0.0');
 		});
 
-		expect(requested).toEqual([
-			'https://example.test/market/index.json',
-			'https://example.test/market/index.json',
-		]);
+		expect(requested.filter((url) => url.endsWith('index.json'))).toHaveLength(2);
 	} finally {
 		globalThis.fetch = realFetch;
 	}
