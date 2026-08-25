@@ -332,7 +332,7 @@ export function createAppCommands(deps: {
 					if (path) deps.gitCommands.openFileHistory(path);
 					else deps.say('No file open', 'warn');
 				},
-				diffAll: deps.gitCommands.showChanges,
+				diffAll: () => deps.gitCommands.openDiff(),
 				showChanges: deps.gitCommands.showChanges,
 				compareBranches: deps.gitCommands.openBranchComparison,
 				compareBranchCommits: deps.gitCommands.openBranchCommitComparison,
