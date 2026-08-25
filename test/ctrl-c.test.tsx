@@ -57,7 +57,11 @@ describe('Ctrl+C', () => {
 
 	test('copies instead of quitting while text is selected', async () => {
 		const t = await openedFile(fixture(FILE));
-		await t.mockMouse.drag(34, 1, 44, 1);
+		const frame = t.captureCharFrame();
+		const alphaAt = frame.indexOf('alpha');
+		expect(alphaAt).toBeGreaterThan(0);
+		const col = alphaAt % (frame.indexOf('\n') + 1);
+		await t.mockMouse.drag(col, 1, col + 5, 1);
 		await settle(t);
 		expect(selectedText(t)).toBeTruthy();
 

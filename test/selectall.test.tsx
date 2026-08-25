@@ -39,8 +39,10 @@ describe('Ctrl+A', () => {
 
 	test('a mouse selection is replaced by typing too', async () => {
 		const { t, dir } = await openedFile();
-		// Drag across "first" on the first line.
-		await t.mockMouse.drag(34, 1, 39, 1);
+		const line = t.captureCharFrame().split('\n')[1] ?? '';
+		const from = line.indexOf('first');
+		expect(from).toBeGreaterThan(0);
+		await t.mockMouse.drag(from, 1, from + 5, 1);
 		await press(t, (input) => void input.typeText('X'));
 		await save(t);
 
