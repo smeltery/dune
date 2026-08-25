@@ -14,6 +14,12 @@ const rowBg = (active: boolean, focused: boolean) =>
 const sectionRow = (row: PluginRow) => (row.kind === 'section' ? row : undefined);
 const installedRow = (row: PluginRow) => (row.kind === 'installed' ? row : undefined);
 
+const version = (row: PluginRow) => {
+	if (row.kind === 'available') return row.version;
+	if (row.kind !== 'installed') return '';
+	return row.update ? `→ ${row.update}` : row.version;
+};
+
 export interface PluginsPanelProps {
 	rows: PluginRow[];
 	cursor: number;
@@ -35,12 +41,6 @@ export interface PluginsPanelProps {
 
 export function PluginsPanel(props: PluginsPanelProps) {
 	const cursor = () => Math.max(0, Math.min(props.cursor, Math.max(0, props.rows.length - 1)));
-
-	const version = (row: PluginRow) => {
-		if (row.kind === 'available') return row.version;
-		if (row.kind !== 'installed') return '';
-		return row.update ? `→ ${row.update}` : row.version;
-	};
 
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
