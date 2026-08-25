@@ -25,7 +25,7 @@ import {
 	allowSelectionOnlyInEditor,
 	createEditorLayout,
 	ignoreScrollOutsideBounds,
-	inlineProblemNotes,
+	inlineLineNotes,
 	scrollTextarea,
 	selectOnMultiClick,
 } from './editorHost';
@@ -34,7 +34,7 @@ import { createEditorCompletion } from './editorCompletion';
 import type { EditorCompletionProps } from './editorCompletion';
 import { createEditorLineActions } from './editorLineActions';
 import { createEditorLineCount, createEditorScrollMetrics } from './editorScrollMetrics';
-import { editorLineSigns } from './problemMarks';
+import { buildInlineAnnotations, editorLineSigns, type ReviewMark } from './problemMarks';
 export interface EditorPaneProps extends EditorCompletionProps {
 	filetype?: string;
 	theme: ThemeName;
@@ -55,6 +55,8 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
 	problemText: boolean;
+	reviews: Map<number, ReviewMark>;
+	reviewText: boolean;
 	notice: { name: string; reason: string } | null;
 	onChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -140,7 +142,7 @@ export function EditorPane(props: EditorPaneProps) {
 
 	const applyLineSigns = () => {
 		const view = folds.folded();
-		const raw = editorLineSigns(props.gitLines, props.problems);
+		const raw = editorLineSigns(props.gitLines, props.reviews, props.problems);
 		const signs = new Map<
 			number,
 			{ before?: string; beforeColor?: string; after?: string; afterColor?: string }
@@ -386,14 +388,23 @@ export function EditorPane(props: EditorPaneProps) {
 	const problemNotes = createMemo(() => {
 		wrapKey();
 		void props.content;
-		if (!props.problemText || !editor || !host || props.problems.size === 0) return [];
+		if (!editor || !host) return [];
+		const view = folds.folded();
+		const annotations = buildInlineAnnotations({
+			reviews: props.reviews,
+			reviewText: props.reviewText,
+			problems: props.problems,
+			problemText: props.problemText,
+			displayOf: (line) => (view ? (view.display[line] ?? -1) : line),
+		});
+		if (annotations.size === 0) return [];
 		const top = viewTop();
 		const height = viewHeight() || editor.height;
 		const { sources, widths } = layout.lineLayout();
-		return inlineProblemNotes({
+		return inlineLineNotes({
 			editor,
 			host,
-			problems: props.problems,
+			annotations,
 			top,
 			height,
 			sources,

@@ -134,7 +134,7 @@ export function EditorPaneBody(props: {
 						top={note.top}
 						left={note.left}
 						zIndex={5}
-						fg={problemColor(note.severity)}
+						fg={note.color}
 						bg={ui.bg}
 						content={note.text}
 					/>

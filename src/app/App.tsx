@@ -683,6 +683,7 @@ export function App(props: AppTypes.AppProps) {
 				completion={completion.request()}
 				gitLines={gitLines()}
 				problems={problemUi.lines()}
+				reviews={review.marks()}
 				problemCounts={problemUi.counts()}
 				problemChoices={problemUi.choices()}
 				problemsOpen={problemsOpen()}
