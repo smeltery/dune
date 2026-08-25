@@ -4,7 +4,7 @@ import { createStore, produce } from 'solid-js/store';
 import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
-import { NOTE_KINDS } from '../core/review';
+import { parseReviewKind, reviewLineTarget, reviewNotePrompt } from './reviewPrompts';
 import { discoverRepos, repoOf } from '../core/vcs/repos';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { setTheme } from '../themes';
@@ -323,6 +323,37 @@ export function App(props: AppTypes.AppProps) {
 		setPrompt,
 		say,
 	});
+	const reviewLine = () => cursor().line;
+	const openReviewKindChooser = () => {
+		const target = reviewLineTarget(activePath, reviewLine, say);
+		if (target) setPrompt(target);
+	};
+	const openReviewNote = (kind: import('../core/review').NoteKind) => {
+		const target = reviewLineTarget(activePath, reviewLine, say);
+		if (target) setPrompt(reviewNotePrompt(target, kind));
+	};
+	const openReviewReply = () => {
+		const parent = review.replyTarget();
+		if (!parent) return;
+		setPrompt({ kind: 'reviewReply', parentId: parent.id });
+	};
+	const toggleReviewPanel = () => {
+		setSidebar(true);
+		gitCommands.setPanel(false);
+		setReviewPanel((was) => {
+			if (!was) review.autoFetch();
+			return !was;
+		});
+		setFocus('tree');
+	};
+	const chooseReviewKind = (kind: string) => {
+		const ask = prompt();
+		setPrompt(null);
+		if (ask?.kind !== 'reviewKind') return;
+		const noteKind = parseReviewKind(kind);
+		if (!noteKind) return;
+		setPrompt(reviewNotePrompt(ask, noteKind));
+	};
 	const documentActions = createDocumentActions({
 		config,
 		buffers,
@@ -454,35 +485,11 @@ export function App(props: AppTypes.AppProps) {
 		problemUi,
 		lspRestart: lsp.restart,
 		openLspStatus: () => setLspStatusOpen(true),
-		reviewOpen: () => {
-			setSidebar(true);
-			gitCommands.setPanel(false);
-			setReviewPanel(true);
-			setFocus('tree');
-			review.autoFetch();
-		},
+		reviewOpen: toggleReviewPanel,
 		reviewFetch: review.fetchPullRequest,
-		reviewNoteChooser: () => {
-			const path = activePath();
-			if (!path) return say('No file to review', 'warn');
-			setPrompt({ kind: 'reviewKind', path, line: cursor().line, endLine: cursor().line });
-		},
-		reviewNote: (kind) => {
-			const path = activePath();
-			if (!path) return say('No file to review', 'warn');
-			setPrompt({
-				kind: 'reviewNote',
-				noteKind: kind,
-				path,
-				line: cursor().line,
-				endLine: cursor().line,
-			});
-		},
-		reviewReply: () => {
-			const parent = review.replyTarget();
-			if (!parent) return;
-			setPrompt({ kind: 'reviewReply', parentId: parent.id });
-		},
+		reviewNoteChooser: openReviewKindChooser,
+		reviewNote: openReviewNote,
+		reviewReply: openReviewReply,
 		reviewClear: review.clear,
 		completion,
 		setLineOp,
@@ -586,26 +593,10 @@ export function App(props: AppTypes.AppProps) {
 		toggleExpand,
 		toggleSidebar,
 		toggleGitPanel: gitCommands.togglePanel,
-		toggleReviewPanel: () => {
-			setSidebar(true);
-			gitCommands.setPanel(false);
-			setReviewPanel((was) => {
-				if (!was) review.autoFetch();
-				return !was;
-			});
-			setFocus('tree');
-		},
+		toggleReviewPanel,
 		toggleMarkdown,
-		reviewNoteChooser: () => {
-			const path = activePath();
-			if (!path) return say('No file to review', 'warn');
-			setPrompt({ kind: 'reviewKind', path, line: cursor().line, endLine: cursor().line });
-		},
-		reviewReply: () => {
-			const parent = review.replyTarget();
-			if (!parent) return;
-			setPrompt({ kind: 'reviewReply', parentId: parent.id });
-		},
+		reviewNoteChooser: openReviewKindChooser,
+		reviewReply: openReviewReply,
 		goToDefinition,
 		problemsList: problemUi.list,
 		problemsAtCursor: problemUi.atCursor,
@@ -683,19 +674,7 @@ export function App(props: AppTypes.AppProps) {
 				problemsOpen={problemsOpen()}
 				problemsTitle={problemsOpen() === 'cursor' ? 'Problem at cursor' : 'Problems'}
 				prompt={prompt()}
-				onChooseReviewKind={(kind) => {
-					const ask = prompt();
-					setPrompt(null);
-					if (ask?.kind !== 'reviewKind') return;
-					if (!NOTE_KINDS.includes(kind as (typeof NOTE_KINDS)[number])) return;
-					setPrompt({
-						kind: 'reviewNote',
-						noteKind: kind as (typeof NOTE_KINDS)[number],
-						path: ask.path,
-						line: ask.line,
-						endLine: ask.endLine,
-					});
-				}}
+				onChooseReviewKind={chooseReviewKind}
 				lspStatusRows={lsp.statusRows()}
 				lspStatusOpen={lspStatusOpen()}
 				notice={notice()}

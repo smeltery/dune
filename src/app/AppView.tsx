@@ -47,7 +47,8 @@ import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
 import type { LspStatusRow } from './lsp';
-import { KIND_CHOICES, type Review } from './review';
+import type { Review } from './review';
+import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
 
@@ -491,10 +492,9 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.prompt?.kind === 'reviewKind' ? props.prompt : undefined}>
 				{(ask: () => Extract<NonNullable<Prompt>, { kind: 'reviewKind' }>) => (
-					<ChoiceModal
-						title="Review note"
-						message={`What kind of remark is this, on ${basename(ask().path)}:${ask().line + 1}?`}
-						choices={KIND_CHOICES}
+					<ReviewKindModal
+						path={ask().path}
+						line={ask().line}
 						onPick={props.onChooseReviewKind}
 						onCancel={props.onCancelPrompt}
 					/>

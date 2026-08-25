@@ -18,7 +18,7 @@ import { fetchComments, findPullRequest, forgeFor } from '../core/forge';
 import type { ForgeComment, PullRequest } from '../core/forge';
 import { remoteUrl } from '../core/git';
 import { loadNotes, NOTE_LABELS, readNotes, rootIdOf, saveNotes } from '../core/review';
-import type { NoteKind, ReviewNote } from '../core/review';
+import type { ReviewNote } from '../core/review';
 import type { Tone } from '../ui/StatusBar';
 import type { Prompt } from './types';
 
@@ -538,11 +538,3 @@ export function createReview(deps: {
 }
 
 export type Review = ReturnType<typeof createReview>;
-
-/** Kinds as the chooser lists them, with what each one means to an agent. */
-export const KIND_CHOICES: { id: NoteKind; label: string }[] = [
-	{ id: 'issue', label: 'Issue — this is wrong and needs fixing' },
-	{ id: 'suggestion', label: 'Suggestion — consider changing this' },
-	{ id: 'question', label: 'Question — explain this' },
-	{ id: 'note', label: 'Note — context worth carrying' },
-];
