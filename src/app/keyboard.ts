@@ -77,12 +77,17 @@ export function useAppKeyboard(deps: {
 	problemsPrev: () => void;
 	problemsRestart: () => void;
 	completion: () => void;
+	foldOp: (op: 'fold' | 'unfold' | 'foldAll' | 'unfoldAll') => void;
 	expanded: () => Set<string>;
 }) {
 	const customCommands: Record<string, () => void> = {
 		open: () => deps.setPicker('files'),
 		save: deps.saveActive,
 		'editor.format': deps.formatActive,
+		'editor.fold': () => deps.foldOp('fold'),
+		'editor.unfold': () => deps.foldOp('unfold'),
+		'editor.foldAll': () => deps.foldOp('foldAll'),
+		'editor.unfoldAll': () => deps.foldOp('unfoldAll'),
 		'tabs.switch': () => deps.setPicker('tabs'),
 		'navigation.back': deps.navigateBack,
 		'navigation.forward': deps.navigateForward,
@@ -175,7 +180,11 @@ export function useAppKeyboard(deps: {
 			return claim(deps.problemsAtCursor);
 		if (key.ctrl && k === 'g' && !customizes('goto'))
 			return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
-		if (key.ctrl && k === 's' && !customizes('save')) return claim(deps.saveActive);
+		if (key.ctrl && k === 's' && !chord(key) && !customizes('save')) return claim(deps.saveActive);
+		if (key.ctrl && chord(key) && k === 's' && !customizes('editor.fold'))
+			return claim(() => deps.foldOp('fold'));
+		if (key.ctrl && chord(key) && k === 'e' && !customizes('editor.unfold'))
+			return claim(() => deps.foldOp('unfold'));
 		if (key.ctrl && chord(key) && k === 'l' && !customizes('editor.format')) {
 			return claim(deps.formatActive);
 		}

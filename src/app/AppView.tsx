@@ -82,6 +82,7 @@ interface AppViewProps {
 	history: { kind: 'undo' | 'redo'; key: number } | null;
 	edit: { content: string; key: number } | null;
 	lineOp: LineOpRequest;
+	foldOp: import('./types').FoldOpRequest;
 	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
@@ -341,6 +342,7 @@ export function AppView(props: AppViewProps) {
 									history={props.history}
 									edit={props.edit}
 									lineOp={props.lineOp}
+									foldOp={props.foldOp}
 									completion={props.completion}
 									vim={props.config.vim}
 									cursorStyle={props.config.cursorStyle}

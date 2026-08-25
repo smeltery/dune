@@ -86,6 +86,7 @@ export interface CommandActions {
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
 	lineOp: (op: NonNullable<LineOpRequest>['op']) => void;
+	foldOp: (op: import('../editor/folds').FoldOp) => void;
 	resolveMergeConflict: () => void;
 	acceptCurrentChange: () => void;
 	acceptIncomingChange: () => void;
@@ -429,6 +430,28 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Go to beginning of line',
 					hint: `Ctrl+${ALT}+B`,
 					run: () => actions.lineOp('lineHome'),
+				},
+				{
+					id: 'editor.fold',
+					label: 'Fold block at cursor',
+					hint: `Ctrl+${ALT}+S`,
+					run: () => actions.foldOp('fold'),
+				},
+				{
+					id: 'editor.unfold',
+					label: 'Unfold block at cursor',
+					hint: `Ctrl+${ALT}+E`,
+					run: () => actions.foldOp('unfold'),
+				},
+				{
+					id: 'editor.foldAll',
+					label: 'Fold everything',
+					run: () => actions.foldOp('foldAll'),
+				},
+				{
+					id: 'editor.unfoldAll',
+					label: 'Unfold everything',
+					run: () => actions.foldOp('unfoldAll'),
 				},
 				...conflictCommands(actions),
 				{

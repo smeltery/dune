@@ -11,6 +11,7 @@ import type { Navigation } from '../navigation';
 import type {
 	BufferState,
 	Focus,
+	FoldOpRequest,
 	HistoryRequest,
 	LineOpRequest,
 	PickerState,
@@ -29,6 +30,7 @@ export function createAppCommandTree(deps: {
 	setHistory: Setter<HistoryRequest>;
 	setSearch: Setter<{ scope: 'file' | 'project'; replacing?: boolean } | null>;
 	setLineOp: Setter<LineOpRequest>;
+	setFoldOp: Setter<FoldOpRequest>;
 	resolveMergeConflict: () => void;
 	acceptMergeConflict: (side: ConflictSide) => void;
 	nextMergeConflict: (direction: 1 | -1) => void;
@@ -172,6 +174,7 @@ export function createAppCommandTree(deps: {
 			},
 		},
 		setLineOp: deps.setLineOp,
+		setFoldOp: deps.setFoldOp,
 		resolveMergeConflict: deps.resolveMergeConflict,
 		acceptMergeConflict: deps.acceptMergeConflict,
 		nextMergeConflict: deps.nextMergeConflict,

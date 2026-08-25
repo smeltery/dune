@@ -6,6 +6,7 @@ import type { ProblemSeverity } from '../lsp/protocol';
 import { getSyntaxStyle } from '../languages/highlight';
 import { ui } from '../themes';
 import type { ProblemNote } from './editorHost';
+import type { FoldNote } from './editorFolds';
 import { problemColor, problemGlyph } from './problemMarks';
 
 const CHANGE_COLORS: Record<LineChange, () => string> = {
@@ -15,8 +16,14 @@ const CHANGE_COLORS: Record<LineChange, () => string> = {
 };
 
 export interface GutterHost {
-	gutter?: { _minWidth?: number };
-	setLineSigns?: (signs: Map<number, { before?: string; beforeColor?: string }>) => void;
+	gutter?: { _minWidth?: number; requestRender?: () => void };
+	setLineSigns?: (
+		signs: Map<
+			number,
+			{ before?: string; beforeColor?: string; after?: string; afterColor?: string }
+		>,
+	) => void;
+	setLineNumbers?: (numbers: Map<number, number>) => void;
 }
 
 export function EditorPaneBody(props: {
@@ -30,6 +37,8 @@ export function EditorPaneBody(props: {
 	changeTrack: (LineChange | undefined)[];
 	problemTrack: (ProblemSeverity | undefined)[];
 	problemNotes: ProblemNote[];
+	foldNotes: FoldNote[];
+	foldMarkers: { top: number; left: number; line: number }[];
 	scrollbar: boolean[];
 	dragging: boolean;
 	onFocus: () => void;
@@ -44,6 +53,7 @@ export function EditorPaneBody(props: {
 	onJumpTrack: (row: number) => void;
 	onStartScrollbarDrag: (y: number) => void;
 	onTrack: (el: { y: number }) => void;
+	onToggleFold: (line: number) => void;
 }) {
 	return (
 		<box
@@ -88,6 +98,35 @@ export function EditorPaneBody(props: {
 					onCursorChange={props.onCursorChange}
 				/>
 			</line_number>
+			<For each={props.foldNotes}>
+				{(note) => (
+					<text
+						position="absolute"
+						top={note.top}
+						left={note.left}
+						zIndex={5}
+						fg={note.hint ? ui.faint : ui.dim}
+						bg={ui.bg}
+						content={note.text}
+					/>
+				)}
+			</For>
+			<For each={props.foldMarkers}>
+				{(marker) => (
+					<box
+						position="absolute"
+						top={marker.top}
+						left={marker.left}
+						width={2}
+						height={1}
+						zIndex={6}
+						onMouseDown={(event: MouseEvent) => {
+							event.stopPropagation();
+							props.onToggleFold(marker.line);
+						}}
+					/>
+				)}
+			</For>
 			<For each={props.problemNotes}>
 				{(note) => (
 					<text

@@ -98,6 +98,7 @@ export function App(props: AppTypes.AppProps) {
 	const [goto, setGoto] = createSignal<AppTypes.GotoRequest>(null);
 	const [edit, setEdit] = createSignal<AppTypes.EditRequest>(null);
 	const [lineOp, setLineOp] = createSignal<AppTypes.LineOpRequest>(null);
+	const [foldOp, setFoldOp] = createSignal<AppTypes.FoldOpRequest>(null);
 	const [recentlyClosed, setRecentlyClosed] = createSignal<string[]>([]);
 	const [cursor, setCursor] = createSignal({ line: 0, col: 0 });
 	const [busy, setBusy] = createSignal<AppTypes.BusyState>(null);
@@ -501,6 +502,7 @@ export function App(props: AppTypes.AppProps) {
 		reviewClear: review.clear,
 		completion,
 		setLineOp,
+		setFoldOp,
 		resolveMergeConflict: mergeConflicts.choose,
 		acceptMergeConflict: mergeConflicts.accept,
 		nextMergeConflict: mergeConflicts.next,
@@ -583,6 +585,7 @@ export function App(props: AppTypes.AppProps) {
 		reopenTab,
 		saveActive,
 		formatActive: documentActions.formatActive,
+		foldOp: (op) => setFoldOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 		say,
 		setAnchor,
 		setClipboard,
@@ -676,6 +679,7 @@ export function App(props: AppTypes.AppProps) {
 				history={history()}
 				edit={edit()}
 				lineOp={lineOp()}
+				foldOp={foldOp()}
 				completion={completion.request()}
 				gitLines={gitLines()}
 				problems={problemUi.lines()}
