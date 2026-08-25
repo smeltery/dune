@@ -17,7 +17,5 @@
 		"test/git-commands.test.tsx": 755,
 		"src/ui/overlays/GitPanel.tsx": 420
 	},
-	"exclude": [
-		"^bun\\.lock$"
-	]
+	"exclude": ["^bun\\.lock$"]
 }

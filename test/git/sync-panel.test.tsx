@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { expect, setDefaultTimeout, test } from 'bun:test';
 
+import { upstreamCommits } from '../../src/core/git';
 import { git as runGit } from '../git-fixture';
 import { launch, press, runCommand, until } from '../helpers';
 
@@ -49,6 +50,31 @@ function divergedRepo() {
 
 	return { mine, origin };
 }
+
+test('upstreamCommits lists what a pull would bring in and what a push would send', () => {
+	const { mine } = divergedRepo();
+
+	expect(upstreamCommits(mine, 'incoming')).toEqual([
+		{ oid: expect.any(String), subject: 'remote change' },
+	]);
+	expect(upstreamCommits(mine, 'outgoing')).toEqual([
+		{ oid: expect.any(String), subject: 'local change' },
+	]);
+	expect(upstreamCommits(mine, 'incoming')[0]?.oid).toHaveLength(40);
+});
+
+test('upstreamCommits is empty without an upstream to compare against', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-sync-no-upstream-'));
+	runGit(dir, 'init', '-q', '-b', 'main');
+	runGit(dir, 'config', 'user.email', 'test@example.com');
+	runGit(dir, 'config', 'user.name', 'Test');
+	writeFileSync(join(dir, 'a.ts'), 'one\n');
+	runGit(dir, 'add', '.');
+	runGit(dir, 'commit', '-q', '-m', 'init');
+
+	expect(upstreamCommits(dir, 'incoming')).toEqual([]);
+	expect(upstreamCommits(dir, 'outgoing')).toEqual([]);
+});
 
 test('the source control panel lists Incoming and Outgoing commits when diverged', async () => {
 	const { mine } = divergedRepo();
