@@ -16,6 +16,7 @@ image/PDF viewer tabs, search and replace (current file and
 project-wide), command palette, built-in and local-plugin themes with transparent-background mode, vim mode, configurable cursor shape and word wrap, git marks in tree/gutter/status bar,
 commit-message history recall, review notes plus read-only pull-request comment fetching from common forges,
 file watching with conflict prompts, in-editor merge-conflict resolution commands, language server diagnostics/completion/status,
+branch comparison as a sidebar panel with a full-width comparison page,
 per-project session restore, and a startup update check.
 
 Plugin catalog/cache/install primitives live in `src/core/market/`; catalog entries may
@@ -176,6 +177,12 @@ import from `app/`. State lives in `App.tsx` and flows down as props.
 Merge conflict marker parsing and one-side resolution live in `src/core/conflicts.ts`.
 Editor commands wire that into the active buffer only; do not shell out to
 `git checkout --ours/--theirs`, because that would discard unsaved edits in the buffer.
+
+Branch comparison is three pieces: `src/core/git/compare.ts` (merge base, changed
+files, commits, and blob reads kept out of the initial load), `src/app/state/comparison.ts`
+(the controller `App.tsx` owns) and `ComparePanel`/`ComparisonView` in `src/ui/overlays/`.
+Its base is the controller's own, not `diffBase` — moving one must not move the other,
+because `diffBase` is what the gutter, the change track and staging act on.
 
 ## Rules
 
