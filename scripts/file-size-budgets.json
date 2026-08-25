@@ -7,6 +7,7 @@
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,
 		"src/app/gitCommands.ts": 780,
+		"src/app/lsp/index.ts": 540,
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 760,
 		"src/editor/vim.ts": 612,

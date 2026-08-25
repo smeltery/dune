@@ -859,6 +859,10 @@ export function App(props: AppTypes.AppProps) {
 				onPickProblem={problemUi.pick}
 				onCloseProblems={() => setProblemsOpen(false)}
 				onCloseLspStatus={() => setLspStatusOpen(false)}
+				onRestartLspStatus={() =>
+					say(lsp.restart() ? 'Restarted language servers' : 'No language servers running')
+				}
+				onUninstallLspStatus={(id) => void lsp.uninstall(id)}
 				onCloseDiff={gitCommands.closeDiff}
 				onCommitFiles={gitCommands.startCommit}
 				onCancelCommit={gitCommands.cancelCommit}

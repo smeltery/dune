@@ -13,6 +13,7 @@ import { join } from 'node:path';
 
 import { firstLine, notInstalled, run } from '../core/process';
 import type { ProcessResult } from '../core/process';
+import type { ServerInstall } from './servers';
 
 const INSTALL_TIMEOUT_MS = 180_000;
 export type PackageManager = 'npm' | 'bun' | 'pnpm';
@@ -37,6 +38,51 @@ export function installedCommand(command: string[], root = SERVER_ROOT): string[
 		process.platform === 'win32' ? `${executable}.exe` : executable,
 	);
 	return existsSync(downloaded) ? [downloaded, ...args] : null;
+}
+
+/**
+ * Delete dune's own copy of a server. Resolves to an error message, or null
+ * when there is nothing of it left.
+ *
+ * Driven by `install` rather than by scanning the directory: an npm server's
+ * executable is a link into a package whose name only the manifest knows, and
+ * handing that name back to the manager is the one thing that also takes the
+ * dependencies that came with it. A `manual` install is dune's to remove in no
+ * sense — it was never dune's to put there.
+ */
+export async function removeServer(
+	install: ServerInstall,
+	executable: string,
+	root = SERVER_ROOT,
+): Promise<string | null> {
+	if (install.kind === 'download') {
+		const target = join(
+			root,
+			'bin',
+			process.platform === 'win32' ? `${executable}.exe` : executable,
+		);
+		try {
+			rmSync(target, { force: true });
+			return null;
+		} catch (error) {
+			return error instanceof Error ? error.message : String(error);
+		}
+	}
+	if (install.kind !== 'npm') return 'dune did not install it';
+	// Whoever wrote the tree takes it apart; npm for one filled before the note
+	// existed, which is what every install used then.
+	const manager = savedManager(root) ?? 'npm';
+	// A removal prunes what the manifest does not list, exactly as an install
+	// does, so the other servers need describing before this one is taken.
+	ensureManifest(root);
+	const result = await run(manager, [...REMOVE_ARGS[manager](root), ...install.packages], {
+		timeout: INSTALL_TIMEOUT_MS,
+	});
+	const failure = failureOf(result, manager);
+	if (failure) return failure;
+	// npm exits 0 for a package that was not there; what the caller promised the
+	// user is that the executable is gone, so that is what is checked.
+	return installedCommand([executable], root) ? `${executable} is still in ${root}` : null;
 }
 
 export function hasNodeRuntime(): boolean {
@@ -122,6 +168,12 @@ const INSTALL_ARGS: Record<PackageManager, (root: string) => string[]> = {
 	npm: (root) => ['install', '--prefix', root, '--no-audit', '--no-fund'],
 	bun: (root) => ['add', '--cwd', root],
 	pnpm: (root) => ['add', '--dir', root],
+};
+
+const REMOVE_ARGS: Record<PackageManager, (root: string) => string[]> = {
+	npm: (root) => ['uninstall', '--prefix', root, '--no-audit', '--no-fund'],
+	bun: (root) => ['remove', '--cwd', root],
+	pnpm: (root) => ['remove', '--dir', root],
 };
 
 function failureOf(result: ProcessResult, manager: PackageManager): string | null {
