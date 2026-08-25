@@ -34,6 +34,7 @@ import { LspStatusView } from '../ui/overlays/LspStatusView';
 import { MarkdownView } from '../ui/MarkdownView';
 import { GitPanel } from '../ui/overlays/GitPanel';
 import { PluginsPanel } from '../ui/overlays/PluginsPanel';
+import { PreviewPane } from '../ui/PreviewPane';
 import { ReviewPanel } from '../ui/ReviewPanel';
 import { SettingsView } from '../ui/overlays/SettingsView';
 import type { SettingRow } from '../ui/overlays/SettingsView';
@@ -115,6 +116,8 @@ interface AppViewProps {
 	pluginsPanel: boolean;
 	review: Review;
 	plugins: import('./appearance/pluginsPanel').PluginsPanel;
+	previewTarget: { path: string; isDir: boolean } | null;
+	previewScroll: { pages: number; at: number } | null;
 	palette: boolean;
 	settingsPage: boolean;
 	settingsScope: 'user' | 'project';
@@ -541,6 +544,30 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.lspStatusOpen}>
 				<LspStatusView rows={props.lspStatusRows} onClose={props.onCloseLspStatus} />
+			</Show>
+			<Show when={props.previewTarget}>
+				{(target: () => { path: string; isDir: boolean }) => (
+					<box
+						position="absolute"
+						top={1}
+						left={
+							props.sidebar && props.config.sidebarPosition !== 'right' ? props.treeWidth + 1 : 0
+						}
+						width={editorWidth()}
+						height={editorHeight()}
+						zIndex={65}
+					>
+						<PreviewPane
+							path={target().path}
+							isDir={target().isDir}
+							buffer={props.buffers[target().path]?.content}
+							width={editorWidth()}
+							height={editorHeight()}
+							scroll={props.previewScroll}
+							onFocus={() => props.onEditorFocus()}
+						/>
+					</box>
+				)}
 			</Show>
 			<Show when={props.diff}>
 				{(files: () => DiffFile[]) => (

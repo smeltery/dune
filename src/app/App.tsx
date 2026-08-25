@@ -28,6 +28,7 @@ import { createFileActions } from './fileActions';
 import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { startupOpen, useAppLifecycle } from './lifecycle';
+import { createPreview } from './preview';
 import { problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createDuneAppLsp } from './lsp/pluginSuggestion';
@@ -239,6 +240,14 @@ export function App(props: AppTypes.AppProps) {
 		takeForPaste,
 		targetDir,
 	} = fileActions;
+	const preview = createPreview({
+		sidebar,
+		focus: () => (gitCommands.panel() || reviewPanel() || pluginsPanel() ? 'gitPanel' : focus()),
+		selectedNode: () => {
+			const node = selectedNode();
+			return node ? { path: node.path, isDir: node.isDir } : null;
+		},
+	});
 	const pushEdit = (content: string) => setEdit((prev) => ({ content, key: (prev?.key ?? 0) + 1 }));
 	const applyReplacement = (path: string, next: string) => (
 		pinTab(path),
@@ -637,6 +646,10 @@ export function App(props: AppTypes.AppProps) {
 		toggleReviewPanel,
 		togglePluginsPanel,
 		toggleMarkdown,
+		previewToggle: () => preview.toggle(),
+		previewScroll: (pages: number) => preview.scroll(pages),
+		previewClose: () => preview.close(),
+		previewShowing: () => preview.target() !== null,
 		reviewNoteChooser: openReviewKindChooser,
 		reviewReply: openReviewReply,
 		goToDefinition,
@@ -746,6 +759,8 @@ export function App(props: AppTypes.AppProps) {
 				pluginsPanel={pluginsPanel()}
 				review={review}
 				plugins={plugins}
+				previewTarget={preview.target()}
+				previewScroll={preview.scrollRequest()}
 				palette={palette()}
 				settingsPage={settingsPage() !== null}
 				settingsScope={settingsPage() ?? 'user'}
