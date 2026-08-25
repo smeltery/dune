@@ -243,8 +243,7 @@ export function App(props: AppTypes.AppProps) {
 	} = fileActions;
 	const preview = createPreview({
 		sidebar,
-		focus: () =>
-			sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus(),
+		focus: () => (sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus()),
 		selectedNode: () => {
 			const node = selectedNode();
 			return node ? { path: node.path, isDir: node.isDir } : null;
@@ -624,8 +623,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus: () =>
-			sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus(),
+		focus: () => (sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus()),
 		help,
 		marked,
 		notice,

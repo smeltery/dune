@@ -46,12 +46,9 @@ import {
 	unstagePaths,
 } from '../core/git';
 import { stepHistory } from '../core/messageHistory';
-import { unifiedDiff } from '../core/diff';
 import {
 	areaDiffFile,
-	branchBehindCount,
 	branchDiffCommits,
-	branchDiffFiles,
 	commitDiffFiles,
 	commitsForFile,
 	commitSummary,
