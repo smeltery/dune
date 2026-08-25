@@ -145,6 +145,7 @@ export interface CommandActions {
 	fetch: () => void;
 	pull: () => void;
 	push: () => void;
+	sync: () => void;
 	showHelp: () => void;
 	quit: () => void;
 }
@@ -643,6 +644,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.fetch', label: 'Fetch', run: actions.fetch },
 				{ id: 'git.pull', label: 'Pull (fast-forward only)', run: actions.pull },
 				{ id: 'git.push', label: 'Push', run: actions.push },
+				{ id: 'git.sync', label: 'Sync / publish', run: actions.sync },
 				{ id: 'git.commitPush', label: 'Commit & push…', run: actions.commitPush },
 				{ id: 'git.commitSync', label: 'Commit & sync…', run: actions.commitSync },
 				{ id: 'git.commitAmend', label: 'Commit (amend)…', run: actions.commitAmend },

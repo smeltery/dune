@@ -465,6 +465,30 @@ export function lastCommitSubject(cwd: string): string | null {
 	return subject.length > 0 ? subject : null;
 }
 
+/** How many commits either sync section lists — the header carries the true counts. */
+const SYNC_LOG_CAP = 50;
+
+export type UpstreamCommit = { oid: string; subject: string };
+
+/**
+ * Commits between the branch and its upstream, one direction at a time — what
+ * the panel's Incoming/Outgoing sections list. Empty with no upstream.
+ */
+export function upstreamCommits(cwd: string, direction: 'incoming' | 'outgoing'): UpstreamCommit[] {
+	const range = direction === 'incoming' ? 'HEAD..@{upstream}' : '@{upstream}..HEAD';
+	const run = git(cwd, ['log', '-n', String(SYNC_LOG_CAP), '--format=%H %s', range], 5000);
+	if (run.status !== 0 || !run.stdout) return [];
+	return run.stdout
+		.split('\n')
+		.filter((line) => line.length > 0)
+		.map((line) => {
+			const split = line.indexOf(' ');
+			return split < 0
+				? { oid: line, subject: '' }
+				: { oid: line.slice(0, split), subject: line.slice(split + 1) };
+		});
+}
+
 export interface GitResult {
 	ok: boolean;
 	detail: string;

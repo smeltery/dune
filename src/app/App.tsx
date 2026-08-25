@@ -779,6 +779,7 @@ export function App(props: AppTypes.AppProps) {
 				onGitToggleStage={(row) => gitCommands.toggleStage(gitStatusEntries(), row)}
 				onGitCommit={gitCommands.openCommitPicker}
 				onGitPush={gitCommands.push}
+				onGitSync={gitCommands.sync}
 				onGitBranchAction={gitCommands.openPanelBranchAction}
 				onOpenReview={() => {
 					gitCommands.setPanel(false);

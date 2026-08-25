@@ -6,15 +6,16 @@
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,
-		"src/app/gitCommands.ts": 640,
+		"src/app/gitCommands.ts": 650,
 		"src/core/forge.ts": 515,
-		"src/core/git.ts": 710,
+		"src/core/git.ts": 760,
 		"src/editor/vim.ts": 612,
 		"src/ui/EditorPane.tsx": 660,
 		"src/ui/SearchPanel.tsx": 530,
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
-		"test/git-commands.test.tsx": 755
+		"test/git-commands.test.tsx": 755,
+		"src/ui/overlays/GitPanel.tsx": 420
 	},
 	"exclude": [
 		"^bun\\.lock$"

@@ -7,21 +7,28 @@ import {
 	ancestorDirs,
 	changeRows,
 	changesFromEntries,
+	commitRows,
 	foldKey,
 	rowArea,
 } from '../../core/changeTree';
-import type { FileStatus, StatusEntry } from '../../core/git';
+import type { FileStatus, StatusEntry, UpstreamCommit } from '../../core/git';
+import { upstreamCommits } from '../../core/git';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
 
 const stageGlyph = (row: ChangeRow) => (rowArea(row) === 'staged' ? '−' : '+');
 
+const isFoldRow = (
+	row: ChangeRow,
+): row is Extract<ChangeRow, { kind: 'dir' | 'section' | 'commitSection' }> =>
+	row.kind === 'dir' || row.kind === 'section' || row.kind === 'commitSection';
+
 export function GitPanel(props: {
 	rootDir: string;
 	branch: string | null;
 	base: string | null;
-	upstream: { ahead: number; behind: number } | null;
+	upstream: { ahead: number; behind: number; name: string | null } | null;
 	view: 'tree' | 'list';
 	width: number;
 	focused: boolean;
@@ -32,6 +39,7 @@ export function GitPanel(props: {
 	onToggleStage: (row: ChangeRow) => void;
 	onCommit: () => void;
 	onPush: () => void;
+	onSync: () => void;
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 	reviewCount: number;
 	onReview: () => void;
@@ -41,13 +49,29 @@ export function GitPanel(props: {
 	const [filtering, setFiltering] = createSignal(false);
 	const [filter, setFilter] = createSignal('');
 	const staging = () => props.base === null;
+	const syncCommits = createMemo(() => {
+		void props.upstream;
+		void props.statusEntries;
+		if (!staging() || !props.upstream?.name) {
+			return { incoming: [] as UpstreamCommit[], outgoing: [] as UpstreamCommit[] };
+		}
+		return {
+			incoming: upstreamCommits(props.rootDir, 'incoming'),
+			outgoing: upstreamCommits(props.rootDir, 'outgoing'),
+		};
+	});
 	const changes = createMemo(() => {
 		const all = changesFromEntries(props.rootDir, props.statusEntries);
 		const query = filter().trim();
 		if (query.length === 0) return all;
 		return all.filter((change) => fuzzyScore(change.rel, query) !== null);
 	});
-	const rows = createMemo(() => changeRows(changes(), props.view, collapsed(), staging()));
+	const rows = createMemo(() => {
+		const change = changeRows(changes(), props.view, collapsed(), staging());
+		if (!staging()) return change;
+		const sync = syncCommits();
+		return [...change, ...commitRows(sync.incoming, sync.outgoing, collapsed())];
+	});
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
 	const headline = () => {
 		const parts = [props.branch ?? 'git'];
@@ -56,17 +80,21 @@ export function GitPanel(props: {
 		if (upstream?.behind) parts.push(`↓${upstream.behind}`);
 		return parts.join(' ');
 	};
-	const toggleDir = (row: Extract<ChangeRow, { kind: 'dir' }>) =>
+	const syncLabel = () => {
+		const upstream = props.upstream;
+		if (!upstream) return null;
+		if (!upstream.name) return 'publish';
+		if (upstream.ahead || upstream.behind) return 'sync';
+		return null;
+	};
+	const toggleFold = (row: Extract<ChangeRow, { kind: 'dir' | 'section' | 'commitSection' }>) =>
 		setCollapsed((prev) => {
-			const key = foldKey(row.area, row.rel);
-			const next = new Set(prev);
-			if (next.has(key)) next.delete(key);
-			else next.add(key);
-			return next;
-		});
-	const toggleSection = (row: Extract<ChangeRow, { kind: 'section' }>) =>
-		setCollapsed((prev) => {
-			const key = foldKey(row.area, '');
+			const key =
+				row.kind === 'dir'
+					? foldKey(row.area, row.rel)
+					: row.kind === 'commitSection'
+						? foldKey(row.group, '')
+						: foldKey(row.area, '');
 			const next = new Set(prev);
 			if (next.has(key)) next.delete(key);
 			else next.add(key);
@@ -87,9 +115,8 @@ export function GitPanel(props: {
 	};
 	const activate = (row: ChangeRow | undefined) => {
 		if (!row) return;
-		if (row.kind === 'section') toggleSection(row);
-		else if (row.kind === 'dir') toggleDir(row);
-		else props.onDiff(row.change.path);
+		if (isFoldRow(row)) toggleFold(row);
+		else if (row.kind === 'file') props.onDiff(row.change.path);
 	};
 
 	useKeyboard((key: KeyEvent) => {
@@ -113,26 +140,28 @@ export function GitPanel(props: {
 			else return;
 		} else if (key.name === 'up') setIndex((at) => (at - 1 + count) % count);
 		else if (key.name === 'down') setIndex((at) => (at + 1) % count);
-		else if (key.name === 'return' || key.name === 'enter') {
-			activate(row());
-		} else if (key.name === 'left') {
+		else if (key.name === 'return' || key.name === 'enter') activate(row());
+		else if (key.name === 'left') {
 			const current = row();
-			if (current?.kind === 'dir' && !current.collapsed) toggleDir(current);
-			else if (current?.kind === 'section' && !current.collapsed) toggleSection(current);
+			if (current && isFoldRow(current) && !current.collapsed) toggleFold(current);
 		} else if (key.name === 'right') {
 			const current = row();
-			if (current?.kind === 'dir' && current.collapsed) toggleDir(current);
-			else if (current?.kind === 'section' && current.collapsed) toggleSection(current);
+			if (current && isFoldRow(current) && current.collapsed) toggleFold(current);
 		} else if (plain && key.name === ' ' && staging()) {
 			const current = row();
-			if (current) props.onToggleStage(current);
+			if (
+				current &&
+				(current.kind === 'file' || current.kind === 'dir' || current.kind === 'section')
+			)
+				props.onToggleStage(current);
 		} else if (plain && key.name === 'c') {
 			if (props.base) props.onBranchAction('commits');
 			else props.onCommit();
 		} else if (plain && key.name === 'd' && !props.base) {
 			const current = row();
 			if (current?.kind === 'file') props.onDiscard(current.change.path, current.change.status);
-		} else if (plain && key.name === 'p') props.onPush();
+		} else if (plain && key.name === 's') props.onSync();
+		else if (plain && key.name === 'p') props.onPush();
 		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
 		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
 			props.onBranchAction('compare');
@@ -145,10 +174,11 @@ export function GitPanel(props: {
 
 	const footerHints = () => {
 		const fold = props.view === 'tree' ? ' · ←→ fold' : '';
+		const sync = syncLabel() ? ' · s sync' : '';
 		if (props.base)
-			return `b branch · B compare · c commits · / filter · p push · enter diff${fold}`;
+			return `b branch · B compare · c commits · / filter · p push${sync} · enter diff${fold}`;
 		const stage = staging() ? 'space stage · ' : '';
-		return `b branch · B compare · c commit · d discard · ${stage}p push · enter diff${fold}`;
+		return `b branch · B compare · c commit · d discard · ${stage}p push${sync} · enter diff${fold}`;
 	};
 
 	return (
@@ -160,7 +190,19 @@ export function GitPanel(props: {
 			onMouseDown={props.onFocus}
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>
-				<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
+				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
+					<text fg={props.focused ? ui.text : ui.dim} bg={ui.panelBg} content={headline()} />
+					<Show when={syncLabel()}>
+						{(label: () => string) => (
+							<text
+								fg={ui.accent}
+								bg={ui.panelBg}
+								content={` · ${label()}`}
+								onMouseDown={props.onSync}
+							/>
+						)}
+					</Show>
+				</box>
 				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
 					<text
 						fg={props.base ? ui.dirty : props.reviewCount > 0 ? ui.accent : ui.faint}
@@ -207,9 +249,9 @@ export function GitPanel(props: {
 										flexShrink={0}
 										content={` ${'  '.repeat(row.depth)}`}
 									/>
-									<Show when={row.kind === 'dir' || row.kind === 'section'}>
+									<Show when={isFoldRow(row)}>
 										{() =>
-											(row.kind === 'dir' || row.kind === 'section') && (
+											isFoldRow(row) && (
 												<text
 													fg={ui.dim}
 													bg={bg()}
@@ -222,17 +264,23 @@ export function GitPanel(props: {
 									<box flexGrow={1} backgroundColor={bg()}>
 										<text
 											fg={
-												row.kind === 'section'
+												row.kind === 'section' || row.kind === 'commitSection'
 													? ui.text
 													: row.kind === 'dir'
 														? ui.folder
-														: active()
-															? ui.text
-															: ui.dim
+														: row.kind === 'commit'
+															? row.group === 'incoming'
+																? ui.gitAdded
+																: ui.accent
+															: active()
+																? ui.text
+																: ui.dim
 											}
 											bg={bg()}
 											content={
-												row.kind === 'dir' || row.kind === 'section' ? row.label : ` ${row.label}`
+												row.kind === 'dir' || row.kind === 'section' || row.kind === 'commitSection'
+													? row.label
+													: ` ${row.label}`
 											}
 										/>
 									</box>
@@ -243,11 +291,19 @@ export function GitPanel(props: {
 													fg={ui.faint}
 													bg={bg()}
 													flexShrink={0}
-													content={
-														row.collapsed
-															? `${row.kind === 'section' ? row.files : row.files} `
-															: ' '
-													}
+													content={row.collapsed ? `${row.files} ` : ' '}
+												/>
+											)
+										}
+									</Show>
+									<Show when={row.kind === 'commitSection'}>
+										{() =>
+											row.kind === 'commitSection' && (
+												<text
+													fg={ui.faint}
+													bg={bg()}
+													flexShrink={0}
+													content={row.collapsed ? `${row.count} ` : ' '}
 												/>
 											)
 										}
