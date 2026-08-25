@@ -41,6 +41,7 @@ import type { SettingRow } from '../ui/overlays/SettingsView';
 import { PromptModal } from '../ui/PromptModal';
 import { SearchPanel } from '../ui/SearchPanel';
 import type { SearchScope } from '../ui/SearchPanel';
+import { SidebarTabs } from '../ui/SidebarTabs';
 import { StatusBar } from '../ui/StatusBar';
 import type { Tone } from '../ui/StatusBar';
 import { Tabs } from '../ui/Tabs';
@@ -50,6 +51,7 @@ import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
 import type { LspStatusRow } from '../lsp/status';
+import type { SidebarView } from './panes';
 import type { Review } from './review';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
@@ -111,9 +113,7 @@ interface AppViewProps {
 	confirmation: Confirmation | null;
 	search: { scope: SearchScope; replacing?: boolean } | null;
 	picker: 'files' | 'tabs' | null;
-	gitPanel: boolean;
-	reviewPanel: boolean;
-	pluginsPanel: boolean;
+	sidebarView: SidebarView;
 	review: Review;
 	plugins: import('./appearance/pluginsPanel').PluginsPanel;
 	previewTarget: { path: string; isDir: boolean } | null;
@@ -161,8 +161,8 @@ interface AppViewProps {
 	onGitSync: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 	onOpenReview: () => void;
-	onCloseReview: () => void;
-	onClosePlugins: () => void;
+	onSelectSidebarView: (view: SidebarView) => void;
+	onCycleSidebarView: () => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -250,110 +250,128 @@ export function AppView(props: AppViewProps) {
 				onMouseUp={() => props.onResizeEnd()}
 			>
 				<Show when={props.sidebar}>
-					<Show
-						when={props.gitPanel || props.reviewPanel || props.pluginsPanel}
-						fallback={
-							<FileTree
-								rootName={basename(props.rootDir) || props.rootDir}
-								nodes={props.nodes}
-								selectedPath={props.selectedPath}
-								expanded={props.expanded}
-								focused={props.focus === 'tree'}
-								width={props.treeWidth}
-								iconTheme={props.config.iconTheme}
-								iconThemes={props.iconThemes}
-								gitStatus={props.gitStatus}
-								gitIgnored={props.gitIgnored}
-								cutPaths={props.cutPaths}
-								markedPaths={props.markedPaths}
-								onActivate={props.onActivateNode}
-								onPin={(node) => props.onPinNode(node)}
-								onFocus={() => props.onTreeFocus()}
-							/>
-						}
-					>
-						<Show
-							when={props.pluginsPanel}
-							fallback={
+					<box width={props.treeWidth} flexShrink={0} flexDirection="column">
+						<SidebarTabs
+							view={props.sidebarView}
+							focused={props.focus !== 'editor' && !props.blocked}
+							width={props.treeWidth}
+							reviewCount={props.review.count()}
+							onSelect={props.onSelectSidebarView}
+						/>
+						{/* The strip above is a fixed-height row, so the body below it needs its
+						    own claim on the column's main axis — a box that was the column's only
+						    child got that for free from the parent row's stretch, but a second
+						    child does not. */}
+						<box flexGrow={1} flexDirection="column">
+							<Show
+								when={props.sidebarView !== 'files'}
+								fallback={
+									<FileTree
+										rootName={basename(props.rootDir) || props.rootDir}
+										nodes={props.nodes}
+										selectedPath={props.selectedPath}
+										expanded={props.expanded}
+										focused={props.focus === 'tree'}
+										width={props.treeWidth}
+										iconTheme={props.config.iconTheme}
+										iconThemes={props.iconThemes}
+										gitStatus={props.gitStatus}
+										gitIgnored={props.gitIgnored}
+										cutPaths={props.cutPaths}
+										markedPaths={props.markedPaths}
+										onActivate={props.onActivateNode}
+										onPin={(node) => props.onPinNode(node)}
+										onFocus={() => props.onTreeFocus()}
+									/>
+								}
+							>
 								<Show
-									when={props.reviewPanel}
+									when={props.sidebarView === 'plugins'}
 									fallback={
-										<GitPanel
-											rootDir={props.rootDir}
-											branch={props.branch}
-											base={props.diffBase}
-											upstream={props.upstream}
-											view={props.config.gitPanelView}
-											width={props.treeWidth}
-											focused={props.focus !== 'editor' && !props.blocked}
-											statusEntries={props.gitStatusEntries}
-											onFocus={() => props.onTreeFocus()}
-											onDiff={props.onGitDiff}
-											onDiscard={props.onGitDiscard}
-											onToggleStage={props.onGitToggleStage}
-											onCommit={props.onGitCommit}
-											onFocusMessage={props.onGitFocusMessage}
-											commitMessage={props.commitMessage}
-											messageEditing={props.messageEditing}
-											hasMessageHistory={props.hasMessageHistory}
-											onMessageInput={props.onGitMessageInput}
-											onWalkHistory={props.onGitWalkHistory}
-											onCancelMessage={props.onGitCancelMessage}
-											onPush={props.onGitPush}
-											onSync={props.onGitSync}
-											onBranchAction={props.onGitBranchAction}
-											reviewCount={props.review.count()}
-											onReview={props.onOpenReview}
-										/>
+										<Show
+											when={props.sidebarView === 'review'}
+											fallback={
+												<GitPanel
+													rootDir={props.rootDir}
+													branch={props.branch}
+													base={props.diffBase}
+													upstream={props.upstream}
+													view={props.config.gitPanelView}
+													width={props.treeWidth}
+													focused={props.focus !== 'editor' && !props.blocked}
+													statusEntries={props.gitStatusEntries}
+													onFocus={() => props.onTreeFocus()}
+													onDiff={props.onGitDiff}
+													onDiscard={props.onGitDiscard}
+													onToggleStage={props.onGitToggleStage}
+													onCommit={props.onGitCommit}
+													onFocusMessage={props.onGitFocusMessage}
+													commitMessage={props.commitMessage}
+													messageEditing={props.messageEditing}
+													hasMessageHistory={props.hasMessageHistory}
+													onMessageInput={props.onGitMessageInput}
+													onWalkHistory={props.onGitWalkHistory}
+													onCancelMessage={props.onGitCancelMessage}
+													onPush={props.onGitPush}
+													onSync={props.onGitSync}
+													onBranchAction={props.onGitBranchAction}
+													reviewCount={props.review.count()}
+													onReview={props.onOpenReview}
+													onCycleView={props.onCycleSidebarView}
+												/>
+											}
+										>
+											<ReviewPanel
+												rows={props.review.rows()}
+												cursor={props.review.cursor()}
+												count={props.review.count()}
+												pull={
+													props.review.pull()
+														? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
+														: null
+												}
+												fetching={props.review.fetching()}
+												focused={props.focus === 'tree' && !props.blocked}
+												width={props.treeWidth}
+												onFocus={() => props.onTreeFocus()}
+												onActivate={(index) => props.review.activate(index)}
+												onCollapseAll={props.review.collapseAll}
+												onMove={(delta) => {
+													props.review.move(delta);
+													props.review.show();
+												}}
+												onFetch={props.review.fetchPullRequest}
+												onRemove={props.review.remove}
+												onReply={props.review.promptReply}
+												onClose={() => props.onSelectSidebarView('files')}
+												onCycleView={props.onCycleSidebarView}
+											/>
+										</Show>
 									}
 								>
-									<ReviewPanel
-										rows={props.review.rows()}
-										cursor={props.review.cursor()}
-										count={props.review.count()}
-										pull={
-											props.review.pull()
-												? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
-												: null
-										}
-										fetching={props.review.fetching()}
+									<PluginsPanel
+										rows={props.plugins.rows()}
+										cursor={props.plugins.cursor()}
+										installedCount={props.plugins.installedCount()}
+										query={props.plugins.query()}
 										focused={props.focus === 'tree' && !props.blocked}
 										width={props.treeWidth}
 										onFocus={() => props.onTreeFocus()}
-										onActivate={(index) => props.review.activate(index)}
-										onCollapseAll={props.review.collapseAll}
-										onMove={(delta) => {
-											props.review.move(delta);
-											props.review.show();
-										}}
-										onFetch={props.review.fetchPullRequest}
-										onRemove={props.review.remove}
-										onReply={props.review.promptReply}
-										onClose={props.onCloseReview}
+										onActivate={(index) => props.plugins.activate(index)}
+										onMove={(delta) => props.plugins.move(delta)}
+										onRemove={props.plugins.remove}
+										onCheck={props.plugins.checkNow}
+										onUpdateAll={props.plugins.updateAll}
+										onOpenSearch={props.plugins.openSearch}
+										onCloseSearch={props.plugins.closeSearch}
+										onSearch={props.plugins.search}
+										onClose={() => props.onSelectSidebarView('files')}
+										onCycleView={props.onCycleSidebarView}
 									/>
 								</Show>
-							}
-						>
-							<PluginsPanel
-								rows={props.plugins.rows()}
-								cursor={props.plugins.cursor()}
-								installedCount={props.plugins.installedCount()}
-								query={props.plugins.query()}
-								focused={props.focus === 'tree' && !props.blocked}
-								width={props.treeWidth}
-								onFocus={() => props.onTreeFocus()}
-								onActivate={(index) => props.plugins.activate(index)}
-								onMove={(delta) => props.plugins.move(delta)}
-								onRemove={props.plugins.remove}
-								onCheck={props.plugins.checkNow}
-								onUpdateAll={props.plugins.updateAll}
-								onOpenSearch={props.plugins.openSearch}
-								onCloseSearch={props.plugins.closeSearch}
-								onSearch={props.plugins.search}
-								onClose={props.onClosePlugins}
-							/>
-						</Show>
-					</Show>
+							</Show>
+						</box>
+					</box>
 					{/* Drag handle: the whole column is the grab target, but only a short
               grip is drawn at its middle — a full-height rule is a heavy line
               down the screen for something you touch once. The spacers centre it

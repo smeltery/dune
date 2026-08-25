@@ -51,6 +51,7 @@ export function GitPanel(props: {
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 	reviewCount: number;
 	onReview: () => void;
+	onCycleView: () => void;
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
@@ -148,7 +149,10 @@ export function GitPanel(props: {
 			!key.ctrl &&
 			!key.meta &&
 			!key.option;
-		if (filtering()) {
+		// Shift+Tab walks the tab strip above the sidebar even while filtering: it
+		// is not a keystroke the filter field has any use for.
+		if (key.name === 'tab' && key.shift) props.onCycleView();
+		else if (filtering()) {
 			if (key.name === 'escape') {
 				if (filter()) setFilterValue('');
 				else setFiltering(false);
@@ -204,6 +208,8 @@ export function GitPanel(props: {
 			flexDirection="column"
 			backgroundColor={ui.panelBg}
 			flexShrink={0}
+			flexGrow={1}
+			flexBasis={0}
 			onMouseDown={props.onFocus}
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>

@@ -73,6 +73,7 @@ export function useAppKeyboard(deps: {
 	previewScroll: (pages: number) => void;
 	previewClose: () => void;
 	previewShowing: () => boolean;
+	cycleSidebarView: () => void;
 	reviewNoteChooser: () => void;
 	reviewReply: () => void;
 	goToDefinition: () => void;
@@ -242,7 +243,10 @@ export function useAppKeyboard(deps: {
 			: k;
 		switch (treeKey) {
 			case 'tab':
-				if (deps.activePath()) deps.setFocus('editor');
+				// Shift+Tab walks the tab strip above the sidebar; plain Tab keeps
+				// handing the keyboard to the editor.
+				if (key.shift) deps.cycleSidebarView();
+				else if (deps.activePath()) deps.setFocus('editor');
 				break;
 			case 'up':
 				if (key.shift) deps.extendSelection(-1);

@@ -20,6 +20,7 @@ import { remoteUrl } from '../core/git';
 import { loadNotes, NOTE_LABELS, readNotes, rootIdOf, saveNotes } from '../core/review';
 import type { ReviewNote } from '../core/review';
 import type { Tone } from '../ui/StatusBar';
+import type { SidebarView } from './panes';
 import type { Prompt } from './types';
 
 /** A comment with the absolute path it belongs to, once one could be worked out. */
@@ -71,8 +72,7 @@ export function createReview(deps: {
 			key: number;
 		},
 	) => void;
-	setGitPanel: (open: boolean) => void;
-	setReviewPanel: (open: boolean) => void;
+	showView: (view: SidebarView) => void;
 	setPrompt: (prompt: Prompt) => void;
 	say: (msg: string, tone?: Tone) => void;
 }) {
@@ -485,10 +485,7 @@ export function createReview(deps: {
 			// Not while quiet: the panel is already up, and the fetch is slow enough
 			// that the user may have tabbed into the editor — `showView` would take
 			// the keyboard back from under them.
-			if (!quiet) {
-				deps.setReviewPanel(true);
-				deps.setGitPanel(false);
-			}
+			if (!quiet) deps.showView('review');
 			const count = said.value.length;
 			if (count > 0) say(`#${found.value.number}: ${count} comment${count === 1 ? '' : 's'}`);
 			else if (!quiet) say(`#${found.value.number} "${found.value.title}" — no comments yet`);

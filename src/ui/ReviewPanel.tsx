@@ -38,6 +38,7 @@ export interface ReviewPanelProps {
 	onRemove: () => void;
 	onReply: () => void;
 	onClose: () => void;
+	onCycleView: () => void;
 }
 
 /**
@@ -58,7 +59,8 @@ export function ReviewPanel(props: ReviewPanelProps) {
 
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
-		if (key.name === 'up') props.onMove(-1);
+		if (key.name === 'tab' && key.shift) props.onCycleView();
+		else if (key.name === 'up') props.onMove(-1);
 		else if (key.name === 'down') props.onMove(1);
 		else if (key.name === 'return' || key.name === 'enter') props.onActivate(cursor());
 		else if (key.name === 'left') {

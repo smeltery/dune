@@ -29,6 +29,7 @@ import { createGitCommands } from './gitCommands';
 import { useAppKeyboard } from './keyboard';
 import { startupOpen, useAppLifecycle } from './lifecycle';
 import { createPreview } from './preview';
+import { nextSidebarView, type SidebarView } from './panes';
 import { problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createDuneAppLsp } from './lsp/pluginSuggestion';
@@ -94,8 +95,7 @@ export function App(props: AppTypes.AppProps) {
 	const [branch, setBranch] = createSignal(currentBranch(rootDir));
 	const [diffBase, setDiffBase] = createSignal<string | null>(null);
 	const [upstream, setUpstream] = createSignal<Upstream | null>(null);
-	const [reviewPanel, setReviewPanel] = createSignal(false);
-	const [pluginsPanel, setPluginsPanel] = createSignal(false);
+	const [sidebarView, setSidebarView] = createSignal<SidebarView>('files');
 	const [resizing, setResizing] = createSignal(false);
 	const [history, setHistory] = createSignal<AppTypes.HistoryRequest>(null);
 	const [goto, setGoto] = createSignal<AppTypes.GotoRequest>(null);
@@ -242,7 +242,7 @@ export function App(props: AppTypes.AppProps) {
 	} = fileActions;
 	const preview = createPreview({
 		sidebar,
-		focus: () => (gitCommands.panel() || reviewPanel() || pluginsPanel() ? 'gitPanel' : focus()),
+		focus: () => (sidebarView() !== 'files' ? 'gitPanel' : focus()),
 		selectedNode: () => {
 			const node = selectedNode();
 			return node ? { path: node.path, isDir: node.isDir } : null;
@@ -329,6 +329,7 @@ export function App(props: AppTypes.AppProps) {
 		say,
 		whileFree,
 		syncFromDisk: () => documentActions.syncFromDisk(),
+		showView: (view: SidebarView) => showView(view),
 	});
 	const activeRepo = () => {
 		const path = activePath();
@@ -336,6 +337,13 @@ export function App(props: AppTypes.AppProps) {
 		const repos = discoverRepos(rootDir, config.gitScanDepth);
 		return repos.length === 1 ? repos[0]! : null;
 	};
+	/** Open the sidebar on one of its views, as the tab strip above it does. */
+	const showView = (next: SidebarView) => {
+		setSidebarView(next);
+		setSidebar(true);
+		setFocus('tree');
+	};
+	const cycleSidebarView = () => showView(nextSidebarView(sidebarView()));
 	const review = createReview({
 		rootDir,
 		config,
@@ -346,8 +354,7 @@ export function App(props: AppTypes.AppProps) {
 		openFile,
 		setFocus,
 		setGoto,
-		setGitPanel: gitCommands.setPanel,
-		setReviewPanel,
+		showView,
 		setPrompt,
 		say,
 	});
@@ -365,32 +372,23 @@ export function App(props: AppTypes.AppProps) {
 		if (!parent) return;
 		setPrompt({ kind: 'reviewReply', parentId: parent.id });
 	};
+	/** Ctrl+Opt+R: show the panel, or put the tree back — the same in-and-out
+	 * as git's and plugins'. */
 	const toggleReviewPanel = () => {
-		setSidebar(true);
-		gitCommands.setPanel(false);
-		setPluginsPanel(false);
-		setReviewPanel((was) => {
-			if (!was) review.autoFetch();
-			return !was;
-		});
-		setFocus('tree');
+		if (sidebar() && sidebarView() === 'review') return showView('files');
+		showView('review');
+		review.autoFetch();
 	};
+	/** Ctrl+Opt+X. */
 	const togglePluginsPanel = () => {
-		setSidebar(true);
-		gitCommands.setPanel(false);
-		setReviewPanel(false);
-		setPluginsPanel((was) => {
-			if (!was) plugins.ensureCatalog();
-			return !was;
-		});
-		setFocus('tree');
+		if (sidebar() && sidebarView() === 'plugins') return showView('files');
+		showView('plugins');
+		plugins.ensureCatalog();
 	};
+	/** Ctrl+Opt+G, as VS Code's Ctrl+Shift+G. */
 	const toggleGitPanel = () => {
-		setSidebar(true);
-		setReviewPanel(false);
-		setPluginsPanel(false);
-		gitCommands.togglePanel();
-		setFocus('tree');
+		if (sidebar() && sidebarView() === 'git') return showView('files');
+		showView('git');
 	};
 	const chooseReviewKind = (kind: string) => {
 		const ask = prompt();
@@ -545,7 +543,7 @@ export function App(props: AppTypes.AppProps) {
 		acceptMergeConflict: mergeConflicts.accept,
 		nextMergeConflict: mergeConflicts.next,
 		patchConfig,
-		gitCommands: { ...gitCommands, sourceControl: toggleGitPanel, togglePanel: toggleGitPanel },
+		gitCommands: { ...gitCommands, sourceControl: toggleGitPanel },
 		setHelp,
 		say,
 		quit,
@@ -599,7 +597,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus: () => (gitCommands.panel() || reviewPanel() || pluginsPanel() ? 'gitPanel' : focus()),
+		focus: () => (sidebarView() !== 'files' ? 'gitPanel' : focus()),
 		help,
 		marked,
 		notice,
@@ -651,6 +649,7 @@ export function App(props: AppTypes.AppProps) {
 		previewScroll: (pages: number) => preview.scroll(pages),
 		previewClose: () => preview.close(),
 		previewShowing: () => preview.target() !== null,
+		cycleSidebarView,
 		reviewNoteChooser: openReviewKindChooser,
 		reviewReply: openReviewReply,
 		goToDefinition,
@@ -755,9 +754,7 @@ export function App(props: AppTypes.AppProps) {
 				confirmation={controls.confirmation()}
 				search={search()}
 				picker={picker()}
-				gitPanel={gitCommands.panel()}
-				reviewPanel={reviewPanel()}
-				pluginsPanel={pluginsPanel()}
+				sidebarView={sidebarView()}
 				review={review}
 				plugins={plugins}
 				previewTarget={preview.target()}
@@ -805,13 +802,11 @@ export function App(props: AppTypes.AppProps) {
 				onGitSync={gitCommands.sync}
 				onGitBranchAction={gitCommands.openPanelBranchAction}
 				onOpenReview={() => {
-					gitCommands.setPanel(false);
-					setPluginsPanel(false);
-					setReviewPanel(true);
+					showView('review');
 					review.autoFetch();
 				}}
-				onCloseReview={() => setReviewPanel(false)}
-				onClosePlugins={() => setPluginsPanel(false)}
+				onSelectSidebarView={showView}
+				onCycleSidebarView={cycleSidebarView}
 				onResizeStart={(event) => {
 					setResizing(true);
 					resizeSidebar(event.x);
