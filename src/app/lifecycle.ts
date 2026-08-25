@@ -5,8 +5,15 @@ import { on, onCleanup, onMount, createEffect } from 'solid-js';
 import type { Config } from '../core/config';
 import type { Appearance } from '../core/appearance';
 import type { TreeNode } from '../core/fs';
-import type { FileStatus, LineChange, Upstream } from '../core/git';
-import { currentBranch, diffLines, ignoredAmong, statusMap, upstreamOf } from '../core/git';
+import type { FileStatus, LineChange, StatusEntry, Upstream } from '../core/git';
+import {
+	currentBranch,
+	diffLines,
+	ignoredAmong,
+	statusEntries,
+	statusMap,
+	upstreamOf,
+} from '../core/git';
 import { fetchCatalog, missingConfiguredAppearancePlugins, updatesFor } from '../core/market';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import { watchNotes } from '../core/review';
@@ -65,6 +72,7 @@ export function useAppLifecycle(deps: {
 	setGitRevision: (update: (n: number) => number) => void;
 	setGitLines: (lines: Map<number, LineChange>) => void;
 	setGitStatus: (status: Map<string, FileStatus>) => void;
+	setGitStatusEntries: (entries: Map<string, StatusEntry>) => void;
 	setGitIgnored: (ignored: Set<string>) => void;
 	setBranch: (branch: string | null) => void;
 	setUpstream: (upstream: Upstream | null) => void;
@@ -187,6 +195,9 @@ export function useAppLifecycle(deps: {
 				] as const,
 			() => {
 				deps.setGitStatus(statusMap(deps.rootDir, deps.diffBase(), deps.config.gitScanDepth));
+				deps.setGitStatusEntries(
+					statusEntries(deps.rootDir, deps.diffBase(), deps.config.gitScanDepth),
+				);
 				deps.setGitIgnored(
 					ignoredAmong(
 						deps.rootDir,

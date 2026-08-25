@@ -501,6 +501,7 @@ test('discarding a modified file restores it from HEAD', async () => {
 
 	const t = await launch(dir);
 	await runCommand(t, 'Source Control');
+	await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => void input.typeText('d'));
 	expect(t.captureCharFrame()).toContain('Discard changes');
 	await press(t, (input) => input.pressEnter());
@@ -514,6 +515,7 @@ test('discarding an untracked file deletes it', async () => {
 
 	const t = await launch(dir);
 	await runCommand(t, 'Source Control');
+	await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => void input.typeText('d'));
 	expect(t.captureCharFrame()).toContain('Delete');
 	await press(t, (input) => input.pressEnter());

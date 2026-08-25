@@ -1,9 +1,12 @@
-import type { FileStatus } from './git';
+import { relative } from 'node:path';
+
+import type { ChangeArea, FileStatus, StatusEntry } from './git';
 
 export interface Change {
 	path: string;
 	rel: string;
 	status: FileStatus;
+	area: ChangeArea;
 }
 
 export interface FileRow {
@@ -18,27 +21,97 @@ export interface DirRow {
 	depth: number;
 	label: string;
 	rel: string;
+	area: ChangeArea;
 	collapsed: boolean;
 	files: number;
 }
 
-export type ChangeRow = FileRow | DirRow;
+export interface SectionRow {
+	kind: 'section';
+	depth: 0;
+	label: string;
+	area: ChangeArea;
+	collapsed: boolean;
+	files: number;
+}
+
+export type ChangeRow = FileRow | DirRow | SectionRow;
+
+export const foldKey = (area: ChangeArea, rel: string) => `${area}:${rel}`;
+
+export const rowArea = (row: ChangeRow): ChangeArea =>
+	row.kind === 'file' ? row.change.area : row.area;
+
+export const rowRel = (row: ChangeRow): string =>
+	row.kind === 'file' ? row.change.rel : row.kind === 'dir' ? row.rel : '';
 
 export function ancestorDirs(rel: string): string[] {
 	const parts = rel.split('/');
 	return parts.slice(0, -1).map((_, at) => parts.slice(0, at + 1).join('/'));
 }
 
+const SECTION_LABEL: Record<ChangeArea, string> = {
+	merge: 'Merge Changes',
+	staged: 'Staged Changes',
+	unstaged: 'Changes',
+};
+
+const AREAS: ChangeArea[] = ['merge', 'staged', 'unstaged'];
+
+export function changesFromEntries(rootDir: string, entries: Map<string, StatusEntry>): Change[] {
+	const changes: Change[] = [];
+	for (const [path, entry] of entries) {
+		const rel = relative(rootDir, path);
+		if (entry.conflicted) {
+			changes.push({ path, rel, status: 'modified', area: 'merge' });
+			continue;
+		}
+		if (entry.staged) changes.push({ path, rel, status: entry.staged, area: 'staged' });
+		if (entry.unstaged) changes.push({ path, rel, status: entry.unstaged, area: 'unstaged' });
+	}
+	return changes.toSorted((a, b) => a.rel.localeCompare(b.rel) || a.area.localeCompare(b.area));
+}
+
 export function changeRows(
 	changes: readonly Change[],
 	mode: 'tree' | 'list' = 'tree',
 	collapsed: ReadonlySet<string> = new Set(),
+	sections = false,
 ): ChangeRow[] {
+	if (!sections) return rowsFor(changes, mode, collapsed, 'unstaged');
+
+	const rows: ChangeRow[] = [];
+	for (const area of AREAS) {
+		const mine = changes.filter((change) => change.area === area);
+		if (mine.length === 0) continue;
+		const shut = collapsed.has(foldKey(area, ''));
+		rows.push({
+			kind: 'section',
+			depth: 0,
+			label: SECTION_LABEL[area],
+			area,
+			collapsed: shut,
+			files: mine.length,
+		});
+		if (shut) continue;
+		for (const row of rowsFor(mine, mode, collapsed, area)) {
+			rows.push({ ...row, depth: row.depth + 1 });
+		}
+	}
+	return rows;
+}
+
+function rowsFor(
+	changes: readonly Change[],
+	mode: 'tree' | 'list',
+	collapsed: ReadonlySet<string>,
+	area: ChangeArea,
+): (FileRow | DirRow)[] {
 	if (mode === 'list') {
 		return changes.map((change) => ({ kind: 'file', depth: 0, label: change.rel, change }));
 	}
 
-	const rows: ChangeRow[] = [];
+	const rows: (FileRow | DirRow)[] = [];
 	const emitted = new Map<string, { depth: number }>();
 
 	for (const change of changes) {
@@ -57,14 +130,15 @@ export function changeRows(
 					depth,
 					label: folded.slice(dir.lastIndexOf('/') + 1),
 					rel: dir,
-					collapsed: collapsed.has(dir),
+					area,
+					collapsed: collapsed.has(foldKey(area, dir)),
 					files: changes.filter((candidate) => candidate.rel.startsWith(`${dir}/`)).length,
 				});
 				emitted.set(dir, { depth });
 				for (const joined of ancestorsUnder(dir, folded)) emitted.set(joined, { depth });
 				depth += 1;
 			}
-			if (collapsed.has(dir)) hidden = true;
+			if (collapsed.has(foldKey(area, dir))) hidden = true;
 		}
 		if (hidden) continue;
 		rows.push({
@@ -75,6 +149,13 @@ export function changeRows(
 		});
 	}
 	return rows;
+}
+
+export function changesFor(changes: readonly Change[], row: ChangeRow): Change[] {
+	if (row.kind === 'file') return [row.change];
+	const area = rowArea(row);
+	const mine = changes.filter((change) => change.area === area);
+	return row.kind === 'section' ? mine : mine.filter((c) => c.rel.startsWith(`${row.rel}/`));
 }
 
 function foldable(changes: readonly Change[], dir: string): string {

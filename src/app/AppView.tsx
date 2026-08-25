@@ -4,9 +4,10 @@ import type { MouseEvent } from '@opentui/core';
 import { useTerminalDimensions } from '@opentui/solid';
 import { For, Show } from 'solid-js';
 
+import type { ChangeRow } from '../core/changeTree';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
-import type { FileStatus, LineChange, Upstream } from '../core/git';
+import type { FileStatus, LineChange, StatusEntry, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
 import type { IconTheme } from '../core/iconThemes';
 import { isImagePath } from '../core/image';
@@ -71,6 +72,7 @@ interface AppViewProps {
 	focus: Focus;
 	treeWidth: number;
 	gitStatus: Map<string, FileStatus>;
+	gitStatusEntries: Map<string, StatusEntry>;
 	gitIgnored: Set<string>;
 	cutPaths: string[];
 	markedPaths: string[];
@@ -138,6 +140,7 @@ interface AppViewProps {
 	onTreeFocus: () => void;
 	onGitDiff: (path: string) => void;
 	onGitDiscard: (path: string, status: FileStatus) => void;
+	onGitToggleStage: (row: ChangeRow) => void;
 	onGitCommit: () => void;
 	onGitPush: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -260,11 +263,12 @@ export function AppView(props: AppViewProps) {
 									upstream={props.upstream}
 									view={props.config.gitPanelView}
 									width={props.treeWidth}
-									focused={props.focus === 'tree' && !props.blocked}
-									status={props.gitStatus}
+									focused={props.focus !== 'editor' && !props.blocked}
+									statusEntries={props.gitStatusEntries}
 									onFocus={() => props.onTreeFocus()}
 									onDiff={props.onGitDiff}
 									onDiscard={props.onGitDiscard}
+									onToggleStage={props.onGitToggleStage}
 									onCommit={props.onGitCommit}
 									onPush={props.onGitPush}
 									onBranchAction={props.onGitBranchAction}

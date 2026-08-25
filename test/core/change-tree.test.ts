@@ -5,7 +5,12 @@ import { changeRows } from '../../src/core/changeTree';
 const changes = (...rels: string[]) =>
 	rels
 		.toSorted((a, b) => a.localeCompare(b))
-		.map((rel) => ({ path: `/repo/${rel}`, rel, status: 'modified' as const }));
+		.map((rel) => ({
+			path: `/repo/${rel}`,
+			rel,
+			status: 'modified' as const,
+			area: 'unstaged' as const,
+		}));
 
 const shape = (rows: ReturnType<typeof changeRows>) =>
 	rows.map((row) =>
@@ -30,7 +35,11 @@ test('source-control rows join single-child folder chains', () => {
 });
 
 test('collapsed source-control folders keep their row and hide their files', () => {
-	const rows = changeRows(changes('src/a.ts', 'src/b.ts', 'c.ts'), 'tree', new Set(['src']));
+	const rows = changeRows(
+		changes('src/a.ts', 'src/b.ts', 'c.ts'),
+		'tree',
+		new Set(['unstaged:src']),
+	);
 	expect(shape(rows)).toEqual(['0:file:c.ts', '0:dir:src']);
 	expect(rows.find((row) => row.kind === 'dir')).toMatchObject({ collapsed: true, files: 2 });
 });

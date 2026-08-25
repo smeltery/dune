@@ -11,6 +11,28 @@ import { DEFAULT_SCAN_DEPTH, discoverRepos, groupByRepo } from './vcs/repos';
 export type LineChange = 'added' | 'modified' | 'deleted';
 export type FileStatus = 'untracked' | 'added' | 'modified' | 'deleted' | 'renamed';
 
+/** Which of git's two columns a change is in — the index, or the working tree. */
+export type StageArea = 'staged' | 'unstaged';
+
+/** The source-control panel's groups. */
+export type ChangeArea = StageArea | 'merge';
+
+/**
+ * One path's change split the way porcelain reports it. Both sides can be set at
+ * once: a file edited after being added is staged and unstaged.
+ */
+export interface StatusEntry {
+	staged: FileStatus | null;
+	unstaged: FileStatus | null;
+	conflicted?: boolean;
+	oldRel?: string;
+}
+
+/** The single mark the tree and the gutter want: staged wins when both are set. */
+export function combinedStatus(entry: StatusEntry): FileStatus {
+	return entry.staged ?? entry.unstaged ?? 'modified';
+}
+
 export interface Branch {
 	name: string;
 	current: boolean;
@@ -142,22 +164,84 @@ const STATUS_BY_CODE: Record<string, FileStatus> = {
 	D: 'deleted',
 };
 
-interface StatusEntry {
+const STATUS_ARGS = ['status', '--porcelain', '-z', '-uall'] as const;
+const UNTRACKED_ARGS = ['ls-files', '--others', '--exclude-standard', '-z'] as const;
+
+/** Porcelain's unmerged states — a `U` in either column, plus both-added/-deleted. */
+const CONFLICT_CODES = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']);
+
+interface PorcelainEntry {
+	xy: string;
 	path: string;
-	status: FileStatus;
-	oldRel?: string;
+	source: string | null;
 }
 
-const changedPath = (
-	base: string,
-	rel: string,
-	status: FileStatus,
-	oldRel?: string,
-): StatusEntry => ({
-	path: join(base, rel),
-	status,
-	oldRel,
-});
+function parsePorcelainEntries(stdout: string): PorcelainEntry[] {
+	const parsed: PorcelainEntry[] = [];
+	const entries = stdout.split('\0');
+	for (let i = 0; i < entries.length; i++) {
+		const entry = entries[i]!;
+		if (entry.length < 4) continue;
+		const xy = entry.slice(0, 2);
+		const source = xy[0] === 'R' || xy[0] === 'C' ? (entries[++i] ?? null) : null;
+		parsed.push({ xy, path: entry.slice(3), source });
+	}
+	return parsed;
+}
+
+function parsePorcelain(stdout: string, base: string): Map<string, StatusEntry> {
+	const statuses = new Map<string, StatusEntry>();
+	for (const entry of parsePorcelainEntries(stdout)) {
+		if (CONFLICT_CODES.has(entry.xy)) {
+			statuses.set(join(base, entry.path), {
+				staged: null,
+				unstaged: 'modified',
+				conflicted: true,
+				oldRel: entry.source ?? undefined,
+			});
+			continue;
+		}
+		const untracked = entry.xy === '??';
+		const staged = untracked ? null : (STATUS_BY_CODE[entry.xy[0]!] ?? null);
+		const unstaged = untracked ? 'untracked' : (STATUS_BY_CODE[entry.xy[1]!] ?? null);
+		if (staged || unstaged) {
+			statuses.set(join(base, entry.path), {
+				staged,
+				unstaged,
+				oldRel: entry.source ?? undefined,
+			});
+		}
+	}
+	return statuses;
+}
+
+function flatten(entries: Map<string, StatusEntry>): Map<string, FileStatus> {
+	return new Map([...entries].map(([path, entry]) => [path, combinedStatus(entry)]));
+}
+
+function asUnstaged(statuses: Map<string, FileStatus>): Map<string, StatusEntry> {
+	return new Map([...statuses].map(([path, status]) => [path, { staged: null, unstaged: status }]));
+}
+
+function parseNameStatus(stdout: string, base: string): Map<string, FileStatus> {
+	const statuses = new Map<string, FileStatus>();
+	const fields = stdout.split('\0');
+	for (let i = 0; i < fields.length; i += 2) {
+		const code = fields[i];
+		if (!code) continue;
+		if (code[0] === 'R' || code[0] === 'C') i++;
+		const path = fields[i + 1];
+		const status = STATUS_BY_CODE[code[0]!];
+		if (status && path) statuses.set(join(base, path), status);
+	}
+	return statuses;
+}
+
+function addUntracked(stdout: string, base: string, into: Map<string, FileStatus>) {
+	for (const rel of stdout.split('\0')) {
+		if (rel.length > 0) into.set(join(base, rel), 'untracked');
+	}
+}
 
 /**
  * Working-tree status per absolute path. Staged and unstaged changes collapse to
@@ -168,42 +252,46 @@ export function statusMap(
 	ref: string | null = null,
 	depth = DEFAULT_SCAN_DEPTH,
 ): Map<string, FileStatus> {
-	const statuses = new Map<string, FileStatus>();
-	if (keyBase(cwd) === null) {
-		for (const repo of discoverRepos(cwd, depth)) {
-			for (const [path, status] of statusMap(repo, ref, depth)) statuses.set(path, status);
-		}
-		return statuses;
-	}
-	for (const entry of statusEntries(cwd, ref)) statuses.set(entry.path, entry.status);
-	return statuses;
+	return flatten(statusEntries(cwd, ref, depth));
 }
 
-function statusEntries(cwd: string, ref: string | null = null): StatusEntry[] {
-	const statuses: StatusEntry[] = [];
+/**
+ * The same status with both columns kept apart — what the source-control panel's
+ * Staged/Changes headings are built from.
+ */
+export function statusEntries(
+	cwd: string,
+	ref: string | null = null,
+	depth = DEFAULT_SCAN_DEPTH,
+): Map<string, StatusEntry> {
+	if (keyBase(cwd) === null) {
+		const entries = new Map<string, StatusEntry>();
+		for (const repo of discoverRepos(cwd, depth)) {
+			for (const [path, entry] of statusEntries(repo, ref, depth)) entries.set(path, entry);
+		}
+		return entries;
+	}
 	const base = keyBase(cwd);
-	if (base === null) return statuses;
+	if (base === null) return new Map();
 	if (ref !== null) return statusAgainst(cwd, ref, base);
 
-	// `-z` because the default output C-quotes and octal-escapes any path that is
-	// not plain ASCII; unquoting that by hand loses every accented or spaced name.
-	// `-uall`, or a brand-new directory collapses to a single `?? newdir/` entry
-	// and every file inside it shows no mark at all.
-	const run = git(cwd, ['status', '--porcelain', '-z', '-uall']);
-	if (run.status !== 0) return statuses;
+	const run = git(cwd, [...STATUS_ARGS]);
+	return run.status === 0 ? parsePorcelain(run.stdout, base) : new Map();
+}
 
-	const entries = run.stdout.split('\0');
-	for (let i = 0; i < entries.length; i++) {
-		const entry = entries[i]!;
-		if (entry.length < 4) continue;
-		// Both porcelain columns mean "differs from HEAD"; staged wins when both are set.
-		const code = entry[0] !== ' ' ? entry[0]! : entry[1]!;
-		// A rename or copy spends a second field on the path it came from.
-		const oldRel = entry[0] === 'R' || entry[0] === 'C' ? entries[++i] : undefined;
-		const status = STATUS_BY_CODE[code];
-		if (status) statuses.push(changedPath(base, entry.slice(3), status, oldRel));
-	}
-	return statuses;
+interface FlatStatusEntry {
+	path: string;
+	status: FileStatus;
+	oldRel?: string;
+}
+
+function flatStatusEntries(cwd: string, ref: string | null = null): FlatStatusEntry[] {
+	const entries = statusEntries(cwd, ref);
+	return [...entries].map(([path, entry]) => ({
+		path,
+		status: combinedStatus(entry),
+		oldRel: entry.oldRel,
+	}));
 }
 
 export function textAtHead(cwd: string, path: string): string {
@@ -219,26 +307,13 @@ function textAtRef(cwd: string, ref: string, rel: string): string | null {
 	return run.status === 0 ? run.stdout : null;
 }
 
-function statusAgainst(cwd: string, ref: string, base: string): StatusEntry[] {
-	const statuses: StatusEntry[] = [];
-	const run = git(cwd, ['diff', '--name-status', '-M', '-z', ref]);
-	if (run.status !== 0) return statuses;
-	const fields = run.stdout.split('\0');
-	for (let i = 0; i < fields.length; i += 2) {
-		const code = fields[i];
-		if (!code) continue;
-		const oldRel = code[0] === 'R' || code[0] === 'C' ? fields[++i] : undefined;
-		const path = fields[i + 1];
-		const status = STATUS_BY_CODE[code[0]!];
-		if (status && path) statuses.push(changedPath(base, path, status, oldRel));
-	}
-	const others = git(cwd, ['ls-files', '--others', '--exclude-standard', '-z']);
-	if (others.status === 0) {
-		for (const rel of others.stdout.split('\0')) {
-			if (rel.length > 0) statuses.push(changedPath(base, rel, 'untracked'));
-		}
-	}
-	return statuses;
+function statusAgainst(cwd: string, ref: string, base: string): Map<string, StatusEntry> {
+	const diff = git(cwd, ['diff', '--name-status', '-M', '-z', ref]);
+	if (diff.status !== 0) return new Map();
+	const statuses = parseNameStatus(diff.stdout, base);
+	const others = git(cwd, [...UNTRACKED_ARGS]);
+	if (others.status === 0) addUntracked(others.stdout, base, statuses);
+	return asUnstaged(statuses);
 }
 
 export function diffFiles(
@@ -252,7 +327,7 @@ export function diffFiles(
 		for (const repo of discoverRepos(cwd, depth)) files.push(...diffFiles(repo, only, ref, depth));
 		return files.toSorted((a, b) => a.path.localeCompare(b.path));
 	}
-	const statuses = statusEntries(cwd, ref);
+	const statuses = flatStatusEntries(cwd, ref);
 	const files: DiffFile[] = [];
 	const base = keyBase(cwd) ?? cwd;
 	for (const { path, status, oldRel } of statuses) {
@@ -458,6 +533,25 @@ export async function commitPaths(
 	const add = await mutate(cwd, ['add', '-A', '--', ...paths]);
 	if (!add.ok) return add;
 	return mutate(cwd, ['commit', '-m', message, '--', ...paths]);
+}
+
+function hasCommits(cwd: string): boolean {
+	return git(cwd, ['rev-parse', '--verify', '--quiet', 'HEAD'], 3000).status === 0;
+}
+
+/** Put `paths` in the index. `-A` records deletions and stages folder contents. */
+export function stagePaths(cwd: string, paths: readonly string[]): Promise<GitResult> {
+	return mutate(cwd, ['add', '-A', '--', ...paths]);
+}
+
+/**
+ * Take `paths` back out of the index, leaving the working tree alone. On an
+ * unborn branch there is no HEAD to restore from, so the index entry is removed.
+ */
+export function unstagePaths(cwd: string, paths: readonly string[]): Promise<GitResult> {
+	return hasCommits(cwd)
+		? mutate(cwd, ['restore', '--staged', '--', ...paths])
+		: mutate(cwd, ['rm', '-q', '--cached', '-r', '--', ...paths]);
 }
 
 export function amendCommit(cwd: string, message: string): Promise<GitResult> {

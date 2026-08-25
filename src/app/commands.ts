@@ -114,6 +114,7 @@ export interface CommandActions {
 	commitSync: () => void;
 	commitAmend: () => void;
 	sourceControl: () => void;
+	gitStage: () => void;
 	diffCurrent: () => void;
 	discardCurrent: () => void;
 	fileHistory: () => void;
@@ -557,6 +558,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			children: [
 				{ id: 'git.commit', label: 'Commit…', run: actions.commit },
 				{ id: 'git.sourceControl', label: 'Source control panel', run: actions.sourceControl },
+				{ id: 'git.stage', label: 'Stage / unstage current file', run: actions.gitStage },
 				{ id: 'git.diffCurrent', label: 'Diff current file', run: actions.diffCurrent },
 				{ id: 'git.discardCurrent', label: 'Discard changes', run: actions.discardCurrent },
 				{ id: 'git.fileHistory', label: 'File history…', run: actions.fileHistory },
