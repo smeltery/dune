@@ -4,7 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { git as runGit } from '../git-fixture';
-import { launch, press, pressEscape, runCommand, until, type Harness } from '../helpers';
+import {
+	launch,
+	openComparison,
+	press,
+	pressEscape,
+	pressTimes,
+	runCommand,
+	untilFrame,
+	untilGone,
+} from '../helpers';
 
 setDefaultTimeout(20_000);
 
@@ -26,21 +35,11 @@ function repo() {
 	return { dir, git };
 }
 
-/** The comparison loads asynchronously: wait for the frame it produces. */
-async function untilFrame(t: Harness, text: string) {
-	await until(t, () => t.captureCharFrame().includes(text), 60);
-	expect(t.captureCharFrame()).toContain(text);
-}
-
-async function openComparison(t: Harness) {
-	await runCommand(t, 'Compare branches');
-	await untilFrame(t, 'base  trunk');
-}
-
-test('Compare branches opens the panel with the default base and a summary', async () => {
+test('B in the source-control panel enters comparison with the default base', async () => {
 	const t = await launch(repo().dir);
 
 	await openComparison(t);
+	await untilFrame(t, '2 files');
 
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('feature');
@@ -54,29 +53,50 @@ test('Compare branches opens the panel with the default base and a summary', asy
 	expect(frame).toContain('session.ts');
 });
 
-test('the comparison base is independent of the working-tree diff base', async () => {
+test('the Compare branches command opens the panel without the git panel first', async () => {
+	const t = await launch(repo().dir);
+
+	await runCommand(t, 'Compare branches');
+	await untilFrame(t, 'base  trunk');
+
+	expect(t.captureCharFrame()).toContain('2 files');
+});
+
+test('B in comparison retargets the base without moving the working-tree diff base', async () => {
 	const { dir, git } = repo();
 	git('branch', 'develop', 'trunk');
 	const t = await launch(dir);
-
 	await openComparison(t);
-	await press(t, (input) => void input.typeText('B'));
+	await untilFrame(t, '2 files');
+
+	await press(t, (input) => input.pressKey('b', { shift: true }));
 	await untilFrame(t, 'Compare against branch');
 	await press(t, (input) => void input.typeText('develop'));
 	await press(t, (input) => input.pressEnter());
 	await untilFrame(t, 'base  develop');
 
 	// Retargeting the comparison must not move what staging or the gutter act on.
-	const footer = t.captureCharFrame().split('\n').at(-2)!;
-	expect(footer).toContain('⎇ feature');
+	expect(t.captureCharFrame().split('\n').at(-2)!).toContain('⎇ feature');
 	expect(t.captureCharFrame()).toContain('2 files');
 });
 
-test('/ filters comparison rows without touching the source-control panel', async () => {
+test('lowercase b keeps branch switching available inside comparison', async () => {
 	const t = await launch(repo().dir);
 	await openComparison(t);
+	await untilFrame(t, '2 files');
 
-	await press(t, (input) => void input.typeText('/'));
+	await press(t, (input) => input.pressKey('b'));
+	await untilFrame(t, 'Switch to branch');
+
+	expect(t.captureCharFrame()).toContain('trunk');
+});
+
+test('/ filters comparison rows without another branch selection', async () => {
+	const t = await launch(repo().dir);
+	await openComparison(t);
+	await untilFrame(t, '2 files');
+
+	await press(t, (input) => input.pressKey('/'));
 	await press(t, (input) => void input.typeText('session'));
 
 	const frame = t.captureCharFrame();
@@ -88,8 +108,9 @@ test('/ filters comparison rows without touching the source-control panel', asyn
 test('c switches the panel to the commits the branch introduced', async () => {
 	const t = await launch(repo().dir);
 	await openComparison(t);
+	await untilFrame(t, '2 files');
 
-	await press(t, (input) => void input.typeText('c'));
+	await press(t, (input) => input.pressKey('c'));
 
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('[Commits]');
@@ -97,26 +118,17 @@ test('c switches the panel to the commits the branch introduced', async () => {
 	expect(frame).not.toContain('session.ts');
 });
 
-test('Enter opens a lazily loaded file diff over the editor slot', async () => {
-	const t = await launch(repo().dir);
-	await openComparison(t);
-
-	await press(t, (input) => input.pressEnter());
-	await untilFrame(t, '+ export const auth = true');
-
-	const frame = t.captureCharFrame();
-	expect(frame).toContain('- export const auth = false');
-	expect(frame).toContain('modified auth.ts +1 -1');
-});
-
-test('d switches the comparison diff between inline and split', async () => {
+test('Enter opens a lazily loaded file diff and d switches its layout', async () => {
 	const t = await launch(repo().dir, {}, { width: 120 });
 	await openComparison(t);
+	await untilFrame(t, '2 files');
+
 	await press(t, (input) => input.pressEnter());
 	await untilFrame(t, '+ export const auth = true');
+	expect(t.captureCharFrame()).toContain('- export const auth = false');
+	expect(t.captureCharFrame()).toContain('modified auth.ts +1 -1');
 
-	await press(t, (input) => void input.typeText('d'));
-
+	await press(t, (input) => input.pressKey('d'));
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('│');
 	expect(frame).toContain('d inline');
@@ -125,7 +137,9 @@ test('d switches the comparison diff between inline and split', async () => {
 test('a commit row opens its metadata and pages through its files', async () => {
 	const t = await launch(repo().dir, {}, { width: 100 });
 	await openComparison(t);
-	await press(t, (input) => void input.typeText('c'));
+	await untilFrame(t, '2 files');
+
+	await press(t, (input) => input.pressKey('c'));
 	await press(t, (input) => input.pressEnter());
 	await untilFrame(t, '+ export const auth = true');
 
@@ -143,6 +157,7 @@ test('a commit row opens its metadata and pages through its files', async () => 
 test('Esc closes the comparison page before leaving the comparison', async () => {
 	const t = await launch(repo().dir);
 	await openComparison(t);
+	await untilFrame(t, '2 files');
 	await press(t, (input) => input.pressEnter());
 	await untilFrame(t, '+ export const auth = true');
 
@@ -151,7 +166,7 @@ test('Esc closes the comparison page before leaving the comparison', async () =>
 	expect(t.captureCharFrame()).toContain('base  trunk');
 
 	await pressEscape(t);
-	await until(t, () => !t.captureCharFrame().includes('base  trunk'), 40);
+	await untilGone(t, 'base  trunk');
 	expect(t.captureCharFrame()).not.toContain('base  trunk');
 });
 
@@ -177,9 +192,7 @@ test('a long comparison windows its rows around the cursor', async () => {
 
 	await openComparison(t);
 	await untilFrame(t, '42 files');
-	for (let index = 0; index < 25; index++) {
-		await press(t, (input) => input.pressArrow('down'));
-	}
+	await pressTimes(t, 25, (input) => input.pressArrow('down'));
 
 	const frame = t.captureCharFrame();
 	expect(frame).toContain('file-24.ts');
