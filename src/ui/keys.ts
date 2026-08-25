@@ -7,8 +7,14 @@
  * Entries sit grouped by `section`, which is what the help overlay renders
  * under headings — a new entry belongs beside its section mates, not at the end.
  */
+import { isDisabledShortcut } from '../core/keybindings';
 
 type Pane = 'tree' | 'editor';
+
+/** The panes plus the sidebar's other views: the source-control, review and
+ * plugins panels replace the tree's keys while they show, so the peek strip
+ * and the tooltip chrome have to tell them apart. */
+export type KeyScope = Pane | 'git' | 'review' | 'plugins';
 
 /** What the key next to the space bar is called on this machine's keyboard. */
 export const ALT = process.platform === 'darwin' ? 'Opt' : 'Alt';
@@ -18,11 +24,11 @@ export interface KeyInfo {
 	label: string;
 	/** Heading the help overlay files this under. */
 	section: string;
-	/** Pane(s) the key is alive in; 'help' rows show in the help table only. */
-	where: Pane | 'all' | 'help';
-	/** Footer advertisement: which pane shows it, as what, in what order.
+	/** Scope(s) the key is alive in; 'help' rows show in the help table only. */
+	where: KeyScope | 'all' | 'help';
+	/** Footer advertisement: which scope shows it, as what, in what order.
 	 * `key` overrides the display key where the full spelling is too wide. */
-	hint?: { pane: Pane | 'all'; label: string; rank: number; key?: string };
+	hint?: { pane: KeyScope | 'all'; label: string; rank: number; key?: string };
 	/** Empty editor prompt, ordered by usefulness. */
 	welcome?: { rank: number; label?: string; key?: string };
 }
@@ -70,6 +76,12 @@ export const KEYS: KeyInfo[] = [
 		label: 'Note this line for a review',
 		section: 'Review',
 		where: 'editor',
+	},
+	{
+		key: '↑↓ · Enter · f/r/⌫',
+		label: 'Move · jump/open · fetch/reply/drop (in review)',
+		section: 'Review',
+		where: 'review',
 	},
 
 	{
@@ -190,6 +202,32 @@ export const KEYS: KeyInfo[] = [
 	},
 
 	{
+		key: '↑↓ · Enter · ←→',
+		label: 'Move · diff/open · fold (in git)',
+		section: 'Source control',
+		where: 'git',
+	},
+	{
+		key: 'Space c d p b B /',
+		label: 'Stage/commit/discard/push/branch/compare/filter',
+		section: 'Source control',
+		where: 'git',
+	},
+
+	{
+		key: '↑↓ · Enter · ⌫',
+		label: 'Move · install/toggle · uninstall (in plugins)',
+		section: 'Plugins',
+		where: 'plugins',
+	},
+	{
+		key: '/ · u · r',
+		label: 'Find · update all · recheck (in plugins)',
+		section: 'Plugins',
+		where: 'plugins',
+	},
+
+	{
 		key: 'Ctrl+B',
 		label: 'Show / hide sidebar',
 		section: 'View',
@@ -233,7 +271,7 @@ export const SECTIONS: HelpSection[] = KEYS.reduce<HelpSection[]>((out, info) =>
 }, []);
 
 /** Footer hints for `pane`, most useful first. */
-export function hintsFor(pane: Pane): ReadonlyArray<readonly [string, string]> {
+export function hintsFor(pane: KeyScope): ReadonlyArray<readonly [string, string]> {
 	return KEYS.filter((info) => info.hint && (info.hint.pane === pane || info.hint.pane === 'all'))
 		.toSorted((a, b) => a.hint!.rank - b.hint!.rank)
 		.map((info) => [info.hint!.key ?? info.key, info.hint!.label] as const);
@@ -247,6 +285,22 @@ export function welcomeKeys(): ReadonlyArray<readonly [string, string]> {
 }
 
 /** Everything alive in `pane`, for the peek strip. */
-export function keysFor(pane: Pane): KeyInfo[] {
+export function keysFor(pane: KeyScope): KeyInfo[] {
 	return KEYS.filter((info) => info.where === pane || info.where === 'all');
+}
+
+/**
+ * The shortcut text for a bindable command id: the user's override — '' if
+ * they disabled it with `none` — or `fallback` where nothing was set. Shared
+ * by every control that draws a tooltip or a footer label off
+ * `config.keybindings`, so a rebound command reads the same everywhere.
+ */
+export function effectiveShortcut(
+	keybindings: Record<string, string>,
+	id: string,
+	fallback = '',
+): string {
+	const custom = keybindings[id];
+	if (custom === undefined) return fallback;
+	return isDisabledShortcut(custom) ? '' : custom;
 }

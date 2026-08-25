@@ -2,6 +2,7 @@ import { useTerminalDimensions } from '@opentui/solid';
 import { createMemo, For } from 'solid-js';
 
 import { ui } from '../themes';
+import type { KeyScope } from './keys';
 import { keysFor } from './keys';
 
 /**
@@ -9,7 +10,7 @@ import { keysFor } from './keys';
  * the status bar. Opened by a key and closed by the next one, so it reads as
  * "hold to see" without needing key-release events no classic terminal sends.
  */
-export function KeyPeek(props: { pane: 'tree' | 'editor' }) {
+export function KeyPeek(props: { pane: KeyScope }) {
 	const dimensions = useTerminalDimensions();
 
 	const layout = createMemo(() => {

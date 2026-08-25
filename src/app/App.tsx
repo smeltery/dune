@@ -738,6 +738,15 @@ export function App(props: AppTypes.AppProps) {
 				selectedPath={selectedPath()}
 				expanded={expanded()}
 				focus={focus()}
+				peekScope={
+					pluginsPanel()
+						? 'plugins'
+						: reviewPanel()
+							? 'review'
+							: gitCommands.panel()
+								? 'git'
+								: focus()
+				}
 				treeWidth={treeWidth()}
 				gitStatus={gitStatus()}
 				gitStatusEntries={gitStatusEntries()}
@@ -934,6 +943,10 @@ export function App(props: AppTypes.AppProps) {
 					if (info) patchConfig({ skipUpdate: info.latest });
 					setUpdate(null);
 				}}
+				onSave={() => void saveActive()}
+				onGotoLine={() => setPrompt({ kind: 'gotoLine' })}
+				onToggleGit={toggleGitPanel}
+				onProblemsList={problemUi.list}
 			/>
 			{mergeConflicts.view()}
 			{appearancePluginUi.view()}
