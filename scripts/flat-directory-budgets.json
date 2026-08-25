@@ -22,5 +22,5 @@
 			"reason": "Themes stay discoverable as small palette, family, builder, and registry modules in one directory."
 		}
 	},
-	"exclude": ["^bun\.lock$"]
+	"exclude": ["^bun\\.lock$"]
 }
