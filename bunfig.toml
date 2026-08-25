@@ -1,1 +1,6 @@
-/workspace/bunfig.toml
+preload = ["@opentui/solid/preload"]
+
+[test]
+# ./test/setup.ts must come after the Solid transform is installed, and before any
+# test file imports src/core/config.ts — see the comment in that file.
+preload = ["@opentui/solid/preload", "./test/setup.ts"]
