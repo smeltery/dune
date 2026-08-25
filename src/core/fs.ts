@@ -253,6 +253,15 @@ export function mtimeOf(path: string): number {
 	}
 }
 
+/** Size in bytes, or 0 when the file is missing/unreadable. */
+export function sizeOf(path: string): number {
+	try {
+		return fs.statSync(path).size;
+	} catch {
+		return 0;
+	}
+}
+
 export function isDirectory(path: string): boolean {
 	try {
 		return fs.statSync(path).isDirectory();

@@ -1,10 +1,9 @@
 import { basename } from 'node:path';
-import { statSync } from 'node:fs';
 
 import type { ScrollBoxRenderable, TreeSitterClient } from '@opentui/core';
 import { createEffect, createMemo, createSignal, on, onMount, Show } from 'solid-js';
 
-import { BinaryFileError, readFile } from '../core/fs';
+import { BinaryFileError, readFile, sizeOf } from '../core/fs';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
 import { filetypeForPath, getSyntaxStyle, highlightClient } from '../languages/highlight';
@@ -24,14 +23,6 @@ export interface PreviewPaneProps {
 const MAX_PREVIEW_BYTES = 512 * 1024;
 
 type Shown = { kind: 'text'; text: string } | { kind: 'image' } | { kind: 'note'; note: string };
-
-const sizeOf = (path: string) => {
-	try {
-		return statSync(path).size;
-	} catch {
-		return 0;
-	}
-};
 
 const sizeLabel = (bytes: number) =>
 	bytes >= 1024 * 1024
@@ -115,13 +106,13 @@ export function PreviewPane(props: PreviewPaneProps) {
 			width="100%"
 			height="100%"
 			flexDirection="column"
-			backgroundColor={ui.bg}
+			backgroundColor={ui.panelBg}
 			onMouseDown={() => props.onFocus()}
 		>
-			<box flexDirection="row" backgroundColor={ui.barBg}>
-				<text fg={ui.text} bg={ui.barBg} flexShrink={0} wrapMode="none" content={` ${name()}`} />
-				<box flexGrow={1} backgroundColor={ui.barBg} />
-				<text fg={ui.dim} bg={ui.barBg} flexShrink={0} wrapMode="none" content={hints()} />
+			<box flexDirection="row" backgroundColor={ui.panelBg}>
+				<text fg={ui.text} bg={ui.panelBg} flexShrink={0} wrapMode="none" content={` ${name()}`} />
+				<box flexGrow={1} backgroundColor={ui.panelBg} />
+				<text fg={ui.dim} bg={ui.panelBg} flexShrink={0} wrapMode="none" content={hints()} />
 			</box>
 
 			<Show when={shown().kind === 'image'}>
@@ -133,16 +124,16 @@ export function PreviewPane(props: PreviewPaneProps) {
 				/>
 			</Show>
 			<Show when={note()}>
-				{(what: () => string) => <text fg={ui.dim} bg={ui.bg} content={`  ${what()}`} />}
+				{(what: () => string) => <text fg={ui.dim} bg={ui.panelBg} content={`  ${what()}`} />}
 			</Show>
 			<Show when={text() !== null}>
 				<scrollbox
 					ref={(el: ScrollBoxRenderable) => (box = el)}
 					flexGrow={1}
-					backgroundColor={ui.bg}
+					backgroundColor={ui.panelBg}
 					paddingLeft={1}
 					scrollbarOptions={{
-						trackOptions: { foregroundColor: ui.scrollbar, backgroundColor: ui.bg },
+						trackOptions: { foregroundColor: ui.scrollbar, backgroundColor: ui.panelBg },
 					}}
 				>
 					<code
@@ -152,7 +143,7 @@ export function PreviewPane(props: PreviewPaneProps) {
 						treeSitterClient={client() ?? undefined}
 						wrapMode="word"
 						fg={ui.text}
-						bg={ui.bg}
+						bg={ui.panelBg}
 					/>
 				</scrollbox>
 			</Show>

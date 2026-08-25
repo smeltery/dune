@@ -166,6 +166,7 @@ export const KEYS: KeyInfo[] = [
 	},
 	{ key: 'Shift+↑ / ↓', label: 'Select a range (in tree)', section: 'File tree', where: 'tree' },
 	{ key: '→ / ←', label: 'Expand / collapse folder', section: 'File tree', where: 'tree' },
+	{ key: 'Space', label: 'Quick look at file (no tab)', section: 'File tree', where: 'tree' },
 	{ key: 'a / A', label: 'New file / folder (in tree)', section: 'File tree', where: 'tree' },
 	{
 		key: 'r / d',

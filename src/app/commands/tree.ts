@@ -87,6 +87,7 @@ export function createAppCommandTree(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
 	pluginsOpen: () => void;
+	previewFile: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../../core/review').NoteKind) => void;
@@ -167,6 +168,7 @@ export function createAppCommandTree(deps: {
 		lspStatus: deps.openLspStatus,
 		reviewOpen: deps.reviewOpen,
 		pluginsOpen: deps.pluginsOpen,
+		previewFile: deps.previewFile,
 		reviewFetch: deps.reviewFetch,
 		reviewNoteChooser: deps.reviewNoteChooser,
 		reviewNote: deps.reviewNote,

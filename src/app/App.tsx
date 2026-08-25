@@ -392,6 +392,25 @@ export function App(props: AppTypes.AppProps) {
 		gitCommands.togglePanel();
 		setFocus('tree');
 	};
+	/**
+	 * Palette entry point: unlike Space in the tree, this can fire from anywhere,
+	 * so it has to put the tree on screen and focused itself before the preview
+	 * has anything to follow.
+	 */
+	const previewFile = () => {
+		if (preview.on()) {
+			preview.close();
+			say('Preview off');
+			return;
+		}
+		setSidebar(true);
+		gitCommands.setPanel(false);
+		setReviewPanel(false);
+		setPluginsPanel(false);
+		focusTree();
+		preview.open();
+		say('Preview on — ↑↓ walks the tree, Enter opens, Space closes');
+	};
 	const chooseReviewKind = (kind: string) => {
 		const ask = prompt();
 		setPrompt(null);
@@ -533,6 +552,7 @@ export function App(props: AppTypes.AppProps) {
 		openLspStatus: () => setLspStatusOpen(true),
 		reviewOpen: toggleReviewPanel,
 		pluginsOpen: togglePluginsPanel,
+		previewFile,
 		reviewFetch: review.fetchPullRequest,
 		reviewNoteChooser: openReviewKindChooser,
 		reviewNote: openReviewNote,

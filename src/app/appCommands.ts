@@ -84,6 +84,7 @@ export function createAppCommands(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
 	pluginsOpen: () => void;
+	previewFile: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
@@ -310,6 +311,7 @@ export function createAppCommands(deps: {
 				goToDefinition: deps.completion.goToDefinition,
 				reviewOpen: deps.reviewOpen,
 				pluginsOpen: deps.pluginsOpen,
+				previewFile: deps.previewFile,
 				reviewFetch: deps.reviewFetch,
 				reviewNoteChooser: deps.reviewNoteChooser,
 				reviewNote: deps.reviewNote,

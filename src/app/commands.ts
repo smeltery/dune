@@ -108,6 +108,7 @@ export interface CommandActions {
 	completion: () => void;
 	reviewOpen: () => void;
 	pluginsOpen: () => void;
+	previewFile: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
@@ -291,6 +292,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Markdown: rendered / source',
 					hint: `Ctrl+${ALT}+M`,
 					run: actions.toggleMarkdown,
+				},
+				{
+					id: 'view.preview',
+					label: 'Preview file (no tab)',
+					hint: 'Space in tree',
+					run: actions.previewFile,
 				},
 				{
 					id: 'view.wrap',
