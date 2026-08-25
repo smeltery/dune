@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import { ui } from '../src/themes';
-import { ALT } from '../src/ui/keys';
 import { TOOLTIP_DWELL_MS } from '../src/ui/tooltip';
 import { placeTooltips } from '../src/ui/tooltipLayout';
 import { fixture, launch, openFile, press, runCommand, settle, until } from './helpers';
@@ -156,7 +155,10 @@ describe('hover tooltips', () => {
 	test('a status bar group gives its command chord', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
 		await openFile(t, 'a.ts');
-		const at = t.captureCharFrame().split('\n').findIndex((line) => line.includes('Ln 1'));
+		const at = t
+			.captureCharFrame()
+			.split('\n')
+			.findIndex((line) => line.includes('Ln 1'));
 		const x = t.captureCharFrame().split('\n')[at]!.indexOf('Ln 1');
 		expect(t.captureCharFrame()).not.toContain(' Ctrl+G ');
 		await rest(t, x, at);
@@ -275,7 +277,7 @@ describe('the Ctrl+K peek scope', () => {
 
 	test('the plugins panel peeks its own keys', async () => {
 		const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
-		await press(t, (i) => i.pressKey('x', { ctrl: true, option: true }));
+		await press(t, (i) => i.pressKey('x', { ctrl: true, meta: true }));
 		await settle(t, 100);
 		await press(t, (i) => i.pressKey('k', { ctrl: true }));
 		expect(t.captureCharFrame()).toContain('Plugins');
