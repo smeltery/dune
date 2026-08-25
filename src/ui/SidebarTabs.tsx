@@ -3,6 +3,8 @@ import { For } from 'solid-js';
 
 import type { SidebarView } from '../app/panes';
 import { ui } from '../themes';
+import { ALT, effectiveShortcut } from './keys';
+import { useTooltip } from './tooltip';
 
 export interface SidebarTabsProps {
 	view: SidebarView;
@@ -12,15 +14,35 @@ export interface SidebarTabsProps {
 	width: number;
 	/** Notes and fetched comments together — the Review button carries the count. */
 	reviewCount: number;
+	keybindings: Record<string, string>;
 	onSelect: (view: SidebarView) => void;
 }
 
-const TABS: { id: SidebarView; label: string; short: string }[] = [
-	{ id: 'files', label: 'Files', short: 'F' },
-	{ id: 'git', label: 'Git', short: 'G' },
-	{ id: 'review', label: 'Review', short: 'R' },
-	{ id: 'plugins', label: 'Plugins', short: 'P' },
-];
+const TABS: { id: SidebarView; label: string; short: string; command?: string; fallback?: string }[] =
+	[
+		{ id: 'files', label: 'Files', short: 'F' },
+		{
+			id: 'git',
+			label: 'Git',
+			short: 'G',
+			command: 'git.sourceControl',
+			fallback: `Ctrl+${ALT}+G`,
+		},
+		{
+			id: 'review',
+			label: 'Review',
+			short: 'R',
+			command: 'view.review',
+			fallback: `Ctrl+${ALT}+R`,
+		},
+		{
+			id: 'plugins',
+			label: 'Plugins',
+			short: 'P',
+			command: 'view.extensions',
+			fallback: `Ctrl+${ALT}+X`,
+		},
+	];
 
 /**
  * A button costs its label, a column of gutter, and — unless the strip has run
@@ -49,6 +71,10 @@ export function SidebarTabs(props: SidebarTabsProps) {
 	const long = () => stripWidth(TABS.map(nameOf), 1) <= props.width;
 	const padded = () => long() || stripWidth(INITIALS, 1) <= props.width;
 	const pad = () => (padded() ? 1 : 0);
+	const chordOf = (tab: (typeof TABS)[number]) =>
+		tab.command
+			? effectiveShortcut(props.keybindings, tab.command, tab.fallback ?? '')
+			: '';
 	return (
 		<box height={1} flexDirection="row" flexShrink={0} backgroundColor={ui.barBg}>
 			{/* `ui.bg`, not the row's own `barBg`: some themes give the tree's unfocused
@@ -64,15 +90,19 @@ export function SidebarTabs(props: SidebarTabsProps) {
 					const bg = () =>
 						active() ? (props.focused ? ui.statusBg : ui.treeSelectedBg) : ui.barBg;
 					const fg = () => (active() ? (props.focused ? ui.statusFg : ui.text) : ui.inactiveTabFg);
+					const tip = useTooltip(() => chordOf(tab));
 					return (
 						<>
 							<box
+								ref={tip.ref}
 								flexDirection="row"
 								flexShrink={0}
 								backgroundColor={bg()}
 								paddingLeft={pad()}
 								paddingRight={pad()}
 								onMouseDown={() => props.onSelect(tab.id)}
+								onMouseOver={tip.enter}
+								onMouseOut={tip.leave}
 							>
 								<text
 									fg={fg()}

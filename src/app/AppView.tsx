@@ -2,7 +2,7 @@ import { basename } from 'node:path';
 
 import type { MouseEvent } from '@opentui/core';
 import { useTerminalDimensions } from '@opentui/solid';
-import { For, Show } from 'solid-js';
+import { createEffect, For, Show } from 'solid-js';
 
 import type { ChangeSection, ChangesMeta } from '../core/changeSections';
 import type { ChangeRow } from '../core/changeTree';
@@ -49,6 +49,8 @@ import { SidebarTabs } from '../ui/SidebarTabs';
 import { StatusBar } from '../ui/StatusBar';
 import type { Tone } from '../ui/StatusBar';
 import { Tabs } from '../ui/Tabs';
+import { setTooltipsEnabled, useTooltipPeek } from '../ui/tooltip';
+import { TooltipLayer } from '../ui/TooltipLayer';
 import { UpdateBanner } from '../ui/UpdateBanner';
 import { ViewerPane } from '../ui/viewers/ViewerPane';
 import type { SearchOptions } from '../core/search';
@@ -61,6 +63,7 @@ import type { Comparison } from './state/comparison';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
+import type { KeyScope } from '../ui/keys';
 
 const GRIP = [0, 1, 2, 3, 4];
 
@@ -79,6 +82,9 @@ interface AppViewProps {
 	selectedPath: string | null;
 	expanded: Set<string>;
 	focus: Focus;
+	/** The scope the Ctrl+K peek and its tooltips draw for: the tree/editor pane,
+	 * or whichever sidebar panel has replaced the tree's keys. */
+	peekScope: KeyScope;
 	treeWidth: number;
 	gitStatus: Map<string, FileStatus>;
 	gitStatusEntries: Map<string, StatusEntry>;
@@ -220,10 +226,16 @@ interface AppViewProps {
 	onCancelConflict: () => void;
 	onCloseUpdate: () => void;
 	onSkipUpdate: () => void;
+	onSave: () => void;
+	onGotoLine: () => void;
+	onToggleGit: () => void;
+	onProblemsList: () => void;
 }
 
 export function AppView(props: AppViewProps) {
 	const dimensions = useTerminalDimensions();
+	useTooltipPeek();
+	createEffect(() => setTooltipsEnabled(props.config.tooltips));
 	const activeImage = () =>
 		props.activePath && isImagePath(props.activePath) ? props.activePath : null;
 	const activePdf = () =>
@@ -251,7 +263,6 @@ export function AppView(props: AppViewProps) {
 				onBack={props.onNavigateBack}
 				onForward={props.onNavigateForward}
 				onOverflow={() => props.onOverflowTabs()}
-				tooltipsEnabled={props.config.tooltips}
 				keybindings={props.config.keybindings}
 				tabIcons={props.config.tabIcons}
 				iconTheme={props.config.iconTheme}
@@ -276,6 +287,7 @@ export function AppView(props: AppViewProps) {
 							focused={props.focus !== 'editor' && !props.blocked}
 							width={props.treeWidth}
 							reviewCount={props.review.count()}
+							keybindings={props.config.keybindings}
 							onSelect={props.onSelectSidebarView}
 						/>
 						{/* The strip above is a fixed-height row, so the body below it needs its
@@ -323,6 +335,7 @@ export function AppView(props: AppViewProps) {
 															width={props.treeWidth}
 															focused={props.focus !== 'editor' && !props.blocked}
 															statusEntries={props.gitStatusEntries}
+															keybindings={props.config.keybindings}
 															onFocus={() => props.onTreeFocus()}
 															onDiff={props.onGitDiff}
 															onOpenFile={props.onGitOpenFile}
@@ -600,6 +613,11 @@ export function AppView(props: AppViewProps) {
 				problems={props.problemCounts}
 				focus={props.renderedMarkdownPath ? 'editor' : props.focus}
 				busy={props.busy}
+				keybindings={props.config.keybindings}
+				onSave={props.onSave}
+				onGotoLine={props.onGotoLine}
+				onToggleGit={props.onToggleGit}
+				onProblemsList={props.onProblemsList}
 			/>
 
 			<Show when={props.promptTitle}>
@@ -801,8 +819,9 @@ export function AppView(props: AppViewProps) {
 				)}
 			</Show>
 			<Show when={props.peek}>
-				<KeyPeek pane={props.focus} />
+				<KeyPeek pane={props.peekScope} />
 			</Show>
+			<TooltipLayer />
 			<Show when={props.help}>
 				<HelpOverlay />
 			</Show>

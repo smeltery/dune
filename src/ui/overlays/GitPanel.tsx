@@ -18,6 +18,8 @@ import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
 import { TextInput } from '../TextInput';
+import { ALT, effectiveShortcut } from '../keys';
+import { useTooltip } from '../tooltip';
 
 const stageGlyph = (row: ChangeRow) => (rowArea(row) === 'staged' ? '−' : '+');
 
@@ -35,6 +37,7 @@ export function GitPanel(props: {
 	width: number;
 	focused: boolean;
 	statusEntries: Map<string, StatusEntry>;
+	keybindings: Record<string, string>;
 	onFocus: () => void;
 	onDiff: (path: string) => void;
 	/** Enter on a file while the all-changes page is up — close it and open the file. */
@@ -70,6 +73,9 @@ export function GitPanel(props: {
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 	const [filtering, setFiltering] = createSignal(false);
 	const [filter, setFilter] = createSignal('');
+	const reviewTip = useTooltip(() =>
+		effectiveShortcut(props.keybindings, 'view.review', `Ctrl+${ALT}+R`),
+	);
 	const staging = () => props.base === null;
 	const syncCommits = createMemo(() => {
 		void props.upstream;
@@ -262,6 +268,7 @@ export function GitPanel(props: {
 				</box>
 				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
 					<text
+						ref={reviewTip.ref}
 						fg={props.base ? ui.dirty : props.reviewCount > 0 ? ui.accent : ui.faint}
 						bg={ui.panelBg}
 						content={
@@ -274,6 +281,8 @@ export function GitPanel(props: {
 										: 'review'
 						}
 						onMouseDown={props.onReview}
+						onMouseOver={reviewTip.enter}
+						onMouseOut={reviewTip.leave}
 					/>
 					<Show when={canCollapseAll()}>
 						<text fg={ui.faint} bg={ui.panelBg} content=" · collapse" onMouseDown={collapseAll} />
@@ -348,6 +357,7 @@ export function GitPanel(props: {
 						{(row, at) => {
 							const active = () => at() === selected();
 							const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
+							const stageTip = useTooltip(() => (staging() ? 'Space' : ''));
 							return (
 								<box
 									height={1}
@@ -429,6 +439,7 @@ export function GitPanel(props: {
 										{() =>
 											(row.kind === 'file' || row.kind === 'dir' || row.kind === 'section') && (
 												<text
+													ref={stageTip.ref}
 													fg={ui.accent}
 													bg={bg()}
 													flexShrink={0}
@@ -437,6 +448,8 @@ export function GitPanel(props: {
 														event.stopPropagation();
 														props.onToggleStage(row);
 													}}
+													onMouseOver={stageTip.enter}
+													onMouseOut={stageTip.leave}
 												/>
 											)
 										}

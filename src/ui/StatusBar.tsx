@@ -5,7 +5,9 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'so
 import { MODE_LABELS } from '../editor/vim';
 import type { VimMode } from '../editor/vim';
 import { ui } from '../themes';
-import { hintsFor } from './keys';
+import type { KeyScope } from './keys';
+import { ALT, effectiveShortcut, hintsFor } from './keys';
+import { useTooltip } from './tooltip';
 
 export type Tone = 'info' | 'warn' | 'error';
 
@@ -24,9 +26,49 @@ export interface StatusBarProps {
 	changed: number;
 	/** LSP diagnostics in the active file; hidden while both counts are zero. */
 	problems?: { errors: number; warnings: number };
-	focus: 'tree' | 'editor';
+	focus: KeyScope;
 	/** A long file operation in flight; replaces the message while it runs. */
 	busy: { label: string; done: number; total: number } | null;
+	keybindings: Record<string, string>;
+	/** Groups that stand for a command: VS Code's status bar, where the changed
+	 * count opens source control and the cursor opens "go to line". */
+	onSave: () => void;
+	onGotoLine: () => void;
+	onToggleGit: () => void;
+	onProblemsList: () => void;
+}
+
+/**
+ * One group of the bar: its text, its padding, and — where it stands for a
+ * command — the click that runs it and the tooltip naming the key. The padding
+ * belongs to the box so the target the pointer rests on is the group's full
+ * width, not the glyphs alone.
+ */
+function Group(props: {
+	text: string;
+	fg: string;
+	padLeft?: number;
+	padRight?: number;
+	onClick?: () => void;
+	/** The chord this group's click runs, if it has one. No chord, no tooltip —
+	 * a chip is all this ever says, and there is nothing to say for it. */
+	chord?: string;
+}) {
+	const hover = useTooltip(() => props.chord ?? '');
+	return (
+		<box
+			ref={hover.ref}
+			paddingLeft={props.padLeft ?? 0}
+			paddingRight={props.padRight ?? 0}
+			flexShrink={0}
+			backgroundColor={ui.barBg}
+			onMouseDown={props.onClick}
+			onMouseOver={props.onClick ? hover.enter : undefined}
+			onMouseOut={props.onClick ? hover.leave : undefined}
+		>
+			<text fg={props.fg} bg={ui.barBg} content={props.text} />
+		</box>
+	);
 }
 
 /** One frame per tick, so a stalled spinner is visibly stalled. */
@@ -161,9 +203,13 @@ export function StatusBar(props: StatusBarProps) {
 			{/* Left: the repository. Right: the file. The message and the hints share
           what is between them, and the hints give way first. */}
 			<Show when={gitText()}>
-				<box paddingLeft={2} flexShrink={0}>
-					<text fg={ui.dim} bg={ui.barBg} content={gitText()} />
-				</box>
+				<Group
+					text={gitText()}
+					fg={ui.dim}
+					padLeft={2}
+					onClick={props.onToggleGit}
+					chord={effectiveShortcut(props.keybindings, 'git.sourceControl', `Ctrl+${ALT}+G`)}
+				/>
 			</Show>
 
 			<Show when={messageText()}>
@@ -188,23 +234,31 @@ export function StatusBar(props: StatusBarProps) {
 			</box>
 
 			<Show when={props.dirty}>
-				<box paddingRight={2} flexShrink={0}>
-					<text fg={ui.dirty} bg={ui.barBg} content="● unsaved" />
-				</box>
+				<Group
+					text="● unsaved"
+					fg={ui.dirty}
+					padRight={2}
+					onClick={props.onSave}
+					chord={effectiveShortcut(props.keybindings, 'save', 'Ctrl+S')}
+				/>
 			</Show>
 			<Show when={problemsText()}>
-				<box paddingRight={2} flexShrink={0}>
-					<text
-						fg={props.problems && props.problems.errors > 0 ? ui.error : ui.dirty}
-						bg={ui.barBg}
-						content={problemsText()}
-					/>
-				</box>
+				<Group
+					text={problemsText()}
+					fg={props.problems && props.problems.errors > 0 ? ui.error : ui.dirty}
+					padRight={2}
+					onClick={props.onProblemsList}
+					chord={effectiveShortcut(props.keybindings, 'problems.list')}
+				/>
 			</Show>
 			<Show when={cursorText()}>
-				<box paddingRight={2} flexShrink={0}>
-					<text fg={ui.dim} bg={ui.barBg} content={cursorText()} />
-				</box>
+				<Group
+					text={cursorText()}
+					fg={ui.dim}
+					padRight={2}
+					onClick={props.onGotoLine}
+					chord={effectiveShortcut(props.keybindings, 'goto', 'Ctrl+G')}
+				/>
 			</Show>
 			<Show when={props.filetype}>
 				{(filetype: () => string) => (

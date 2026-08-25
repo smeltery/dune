@@ -7,8 +7,8 @@ import type { IconThemeName } from '../core/config';
 import type { IconTheme } from '../core/iconThemes';
 import { ui } from '../themes';
 import { builtinGlyph, themedGlyph } from './FileTree';
-import { ALT } from './keys';
-import { createHoverTooltip } from './tooltip';
+import { ALT, effectiveShortcut } from './keys';
+import { useTooltip } from './tooltip';
 
 export interface TabInfo {
 	path: string;
@@ -28,7 +28,6 @@ export interface TabsProps {
 	onForward: () => void;
 	/** Clicking an overflow counter asks for the full list of open tabs. */
 	onOverflow: () => void;
-	tooltipsEnabled: boolean;
 	keybindings: Record<string, string>;
 	/** Show each file's type icon beside its label, the tree's icon theme applied. */
 	tabIcons: boolean;
@@ -49,8 +48,16 @@ const fileNameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 
 export function Tabs(props: TabsProps) {
 	const dimensions = useTerminalDimensions();
-	const tooltip = createHoverTooltip(() => props.tooltipsEnabled);
-	const shortcut = (id: string, fallback: string) => props.keybindings[id] ?? fallback;
+	const shortcut = (id: string, fallback: string) =>
+		effectiveShortcut(props.keybindings, id, fallback);
+	const switchChord = () => shortcut('tabs.switch', 'Ctrl+T');
+	// Two targets, not one: with tabs overflowing on both ends, "‹N" and "N›"
+	// are on screen at once, and sharing a target would let the later of the
+	// two mounts steal the earlier one's box.
+	const overflowBeforeTip = useTooltip(switchChord);
+	const overflowAfterTip = useTooltip(switchChord);
+	const backTip = useTooltip(() => shortcut('navigation.back', `Ctrl+${ALT}+Z`));
+	const forwardTip = useTooltip(() => shortcut('navigation.forward', `Ctrl+${ALT}+Y`));
 	const glyphFor = (path: string) => {
 		const node = { name: fileNameOf(path), isDir: false };
 		const theme = props.iconThemes.find((entry) => entry.id === props.iconTheme);
@@ -106,13 +113,12 @@ export function Tabs(props: TabsProps) {
 				>
 					<Show when={visible().before > 0}>
 						<box
+							ref={overflowBeforeTip.ref}
 							paddingLeft={1}
 							backgroundColor={ui.barBg}
 							onMouseDown={() => props.onOverflow()}
-							onMouseOver={() =>
-								tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)
-							}
-							onMouseOut={() => tooltip.onOut('overflow')}
+							onMouseOver={overflowBeforeTip.enter}
+							onMouseOut={overflowBeforeTip.leave}
 						>
 							<text fg={ui.dim} bg={ui.barBg} content={`‹${visible().before}`} />
 						</box>
@@ -121,6 +127,7 @@ export function Tabs(props: TabsProps) {
 						{(tab) => {
 							const active = () => tab.path === props.activePath;
 							const bg = () => (active() ? ui.bg : ui.barBg);
+							const closeTip = useTooltip(() => shortcut('tabs.close', 'Ctrl+W'));
 							return (
 								<box
 									flexDirection="row"
@@ -156,18 +163,14 @@ export function Tabs(props: TabsProps) {
 										}
 									/>
 									<box
+										ref={closeTip.ref}
 										paddingLeft={1}
 										onMouseDown={(e: MouseEvent) => {
 											e.stopPropagation();
 											props.onClose(tab.path);
 										}}
-										onMouseOver={() =>
-											tooltip.onOver(
-												`close:${tab.path}`,
-												`Close tab (${shortcut('tabs.close', 'Ctrl+W')})`,
-											)
-										}
-										onMouseOut={() => tooltip.onOut(`close:${tab.path}`)}
+										onMouseOver={closeTip.enter}
+										onMouseOut={closeTip.leave}
 									>
 										<text
 											fg={tab.dirty ? ui.dirty : active() ? ui.dim : ui.barBg}
@@ -181,56 +184,39 @@ export function Tabs(props: TabsProps) {
 					</For>
 					<Show when={visible().after > 0}>
 						<box
+							ref={overflowAfterTip.ref}
 							paddingLeft={1}
 							paddingRight={1}
 							backgroundColor={ui.barBg}
 							onMouseDown={() => props.onOverflow()}
-							onMouseOver={() =>
-								tooltip.onOver('overflow', `Switch tabs (${shortcut('tabs.switch', 'Ctrl+T')})`)
-							}
-							onMouseOut={() => tooltip.onOut('overflow')}
+							onMouseOver={overflowAfterTip.enter}
+							onMouseOut={overflowAfterTip.leave}
 						>
 							<text fg={ui.dim} bg={ui.barBg} content={`${visible().after}›`} />
 						</box>
 					</Show>
 					<box
+						ref={backTip.ref}
 						paddingLeft={1}
 						backgroundColor={ui.barBg}
 						onMouseDown={() => props.onBack()}
-						onMouseOver={() =>
-							tooltip.onOver('back', `Go back (${shortcut('navigation.back', `Ctrl+${ALT}+Z`)})`)
-						}
-						onMouseOut={() => tooltip.onOut('back')}
+						onMouseOver={backTip.enter}
+						onMouseOut={backTip.leave}
 					>
 						<text fg={props.canBack ? ui.dim : ui.faint} bg={ui.barBg} content="‹" />
 					</box>
 					<box
+						ref={forwardTip.ref}
 						paddingLeft={1}
 						paddingRight={1}
 						backgroundColor={ui.barBg}
 						onMouseDown={() => props.onForward()}
-						onMouseOver={() =>
-							tooltip.onOver(
-								'forward',
-								`Go forward (${shortcut('navigation.forward', `Ctrl+${ALT}+Y`)})`,
-							)
-						}
-						onMouseOut={() => tooltip.onOut('forward')}
+						onMouseOver={forwardTip.enter}
+						onMouseOut={forwardTip.leave}
 					>
 						<text fg={props.canForward ? ui.dim : ui.faint} bg={ui.barBg} content="›" />
 					</box>
 				</Show>
-				<box flexGrow={1} flexDirection="row" justifyContent="flex-end" backgroundColor={ui.barBg}>
-					<Show when={tooltip.label()}>
-						{(label: () => string) => (
-							<text
-								fg={ui.dim}
-								bg={ui.barBg}
-								content={`${label().slice(0, dimensions().width)} `}
-							/>
-						)}
-					</Show>
-				</box>
 			</box>
 		</box>
 	);
