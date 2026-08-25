@@ -1,13 +1,8 @@
 {
 	"default_lines": 500,
 	"files": {
-<<<<<<< HEAD
 		"src/app/App.tsx": 1000,
 		"src/app/AppView.tsx": 980,
-=======
-		"src/app/App.tsx": 940,
-		"src/app/AppView.tsx": 740,
->>>>>>> 8ecd442 (fix: resolve file-size budgets after rebase)
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,

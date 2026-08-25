@@ -34,7 +34,7 @@ export interface ComparePanelProps {
 	onCloseFilter: (clear: boolean) => void;
 	onFilter: (value: string) => void;
 	onOpenBase: () => void;
-	onSwitchBranch?: () => void;
+	onSwitchBranch: () => void;
 	onClose: () => void;
 }
 
@@ -96,7 +96,7 @@ export function ComparePanel(props: ComparePanelProps) {
 		else if (key.sequence === 'c') props.onToggleMode();
 		else if (key.sequence === '/') props.onOpenFilter();
 		else if (key.sequence === 'B') props.onOpenBase();
-		else if (key.sequence === 'b' && !key.shift) props.onSwitchBranch?.();
+		else if (key.sequence === 'b' && !key.shift) props.onSwitchBranch();
 		else return;
 		key.preventDefault();
 	});
@@ -139,9 +139,7 @@ export function ComparePanel(props: ComparePanelProps) {
 					bg={ui.panelBg}
 					wrapMode="none"
 					content={
-						props.filtering || props.filter
-							? cut(`filter ${props.filter}`, room())
-							: summary()
+						props.filtering || props.filter ? cut(`filter ${props.filter}`, room()) : summary()
 					}
 				/>
 				<text
