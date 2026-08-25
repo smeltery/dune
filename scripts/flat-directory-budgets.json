@@ -10,7 +10,7 @@
 			"reason": "App orchestration modules stay together when they share command, keyboard, lifecycle, and UI plumbing."
 		},
 		"src/core": {
-			"limit": 30,
+			"limit": 31,
 			"reason": "Core keeps IO primitives discoverable by domain, including git, forge, review, search, config, and filesystem modules."
 		},
 		"src/ui": {

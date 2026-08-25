@@ -133,6 +133,7 @@ export function createAppCommands(deps: {
 		sync: () => void;
 		toggleStage: (entries: Map<string, StatusEntry>, row: ChangeRow) => void;
 		toggleStageActiveFile: () => void;
+		showChanges: () => void;
 	};
 	setHelp: (show: boolean) => void;
 	quit: () => void;
@@ -331,7 +332,8 @@ export function createAppCommands(deps: {
 					if (path) deps.gitCommands.openFileHistory(path);
 					else deps.say('No file open', 'warn');
 				},
-				diffAll: () => deps.gitCommands.openDiff(),
+				diffAll: deps.gitCommands.showChanges,
+				showChanges: deps.gitCommands.showChanges,
 				compareBranches: deps.gitCommands.openBranchComparison,
 				compareBranchCommits: deps.gitCommands.openBranchCommitComparison,
 				compareAgainstBranch: deps.gitCommands.openDiffBasePicker,

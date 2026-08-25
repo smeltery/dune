@@ -2,83 +2,13 @@ import type { KeyEvent } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
-import { splitText, unifiedDiff } from '../../core/diff';
 import type { DiffFile } from '../../core/gitDiff';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
+import { diffFor, diffRows, displayPath } from '../diffRows';
+import type { DiffLine, DiffMode } from '../diffRows';
 import { listRows, modalWidth, PAD } from '../modal';
 import { Overlay } from '../Overlay';
-
-interface DiffLine {
-	text: string;
-	kind: 'meta' | 'same' | 'add' | 'del' | 'header';
-}
-
-type DiffMode = 'inline' | 'split';
-
-function lines(text: string): string[] {
-	return splitText(text);
-}
-
-function unified(file: DiffFile): DiffLine[] {
-	return lines(unifiedDiff(file.rel, file.oldText, file.newText).patch).map((text) => ({
-		text: `${text[0] === '+' || text[0] === '-' ? `${text[0]} ` : text[0] === ' ' ? '  ' : ''}${text.slice(text[0] === '@' ? 0 : 1)}`,
-		kind:
-			text.startsWith('---') || text.startsWith('+++') || text[0] === '@'
-				? 'meta'
-				: text[0] === '+'
-					? 'add'
-					: text[0] === '-'
-						? 'del'
-						: 'same',
-	}));
-}
-
-function split(file: DiffFile, width: number): DiffLine[] {
-	const leftWidth = Math.max(16, Math.floor((width - PAD * 2 - 5) / 2));
-	const rows: DiffLine[] = [];
-	const deletes: string[] = [];
-	const additions: string[] = [];
-	const flush = () => {
-		const max = Math.max(deletes.length, additions.length);
-		for (let at = 0; at < max; at++) {
-			const before = deletes[at] ?? '';
-			const after = additions[at] ?? '';
-			rows.push({
-				kind: before && !after ? 'del' : after ? 'add' : 'same',
-				text: `${before ? '-' : ' '} ${before.slice(0, leftWidth).padEnd(leftWidth)} │ ${
-					after ? '+' : ' '
-				} ${after}`,
-			});
-		}
-		deletes.length = 0;
-		additions.length = 0;
-	};
-	for (const line of lines(unifiedDiff(file.rel, file.oldText, file.newText).patch)) {
-		if (line.startsWith('---') || line.startsWith('+++')) {
-			flush();
-			rows.push({ kind: 'meta', text: line });
-		} else if (line[0] === '-') deletes.push(line.slice(1));
-		else if (line[0] === '+') additions.push(line.slice(1));
-		else {
-			flush();
-			if (line[0] === ' ') {
-				const text = line.slice(1);
-				rows.push({
-					kind: 'same',
-					text: `  ${text.slice(0, leftWidth).padEnd(leftWidth)} │   ${text}`,
-				});
-			} else rows.push({ kind: 'meta', text: line });
-		}
-	}
-	flush();
-	return rows;
-}
-
-const diffFor = (file: DiffFile) =>
-	file.binary ? { patch: '', adds: 0, dels: 0 } : unifiedDiff(file.rel, file.oldText, file.newText);
-
-const displayPath = (file: DiffFile) => (file.oldRel ? `${file.oldRel} -> ${file.rel}` : file.rel);
 
 const fileHeader = (file: DiffFile): DiffLine => {
 	const diff = diffFor(file);
@@ -87,11 +17,7 @@ const fileHeader = (file: DiffFile): DiffLine => {
 };
 
 function bodyFor(file: DiffFile, mode: DiffMode, width: number): DiffLine[] {
-	return file.binary
-		? [{ text: 'Binary file: textual diff is not available.', kind: 'meta' }]
-		: mode === 'split'
-			? split(file, width)
-			: unified(file);
+	return diffRows(file, mode, width - PAD * 2);
 }
 
 /**

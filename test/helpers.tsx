@@ -122,3 +122,11 @@ export async function until(t: Harness, done: () => boolean, attempts = 20) {
 	await settle(t, 25);
 	return until(t, done, attempts - 1);
 }
+
+export async function untilFrame(t: Harness, text: string, attempts = 40) {
+	await until(t, () => t.captureCharFrame().includes(text), attempts);
+}
+
+export async function untilGone(t: Harness, text: string, attempts = 40) {
+	await until(t, () => !t.captureCharFrame().includes(text), attempts);
+}

@@ -1,6 +1,6 @@
 import { TextAttributes, type KeyEvent } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
-import { createMemo, createSignal, For, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, on, Show } from 'solid-js';
 
 import type { ChangeRow } from '../../core/changeTree';
 import {
@@ -10,6 +10,7 @@ import {
 	commitRows,
 	foldKey,
 	rowArea,
+	rowRel,
 } from '../../core/changeTree';
 import type { FileStatus, StatusEntry, UpstreamCommit } from '../../core/git';
 import { upstreamCommits } from '../../core/git';
@@ -36,6 +37,9 @@ export function GitPanel(props: {
 	statusEntries: Map<string, StatusEntry>;
 	onFocus: () => void;
 	onDiff: (path: string) => void;
+	/** Enter on a file while the all-changes page is up — close it and open the file. */
+	onOpenFile: (path: string) => void;
+	onOpenCommit: (oid: string) => void;
 	onDiscard: (path: string, status: FileStatus) => void;
 	onToggleStage: (row: ChangeRow) => void;
 	onCommit: () => void;
@@ -52,6 +56,15 @@ export function GitPanel(props: {
 	reviewCount: number;
 	onReview: () => void;
 	onCycleView: () => void;
+	/** The stacked all-changes page is up, so `a` closes it and Esc does too. */
+	changesOpen: boolean;
+	onShowChanges: () => void;
+	onCloseChanges: () => void;
+	/** Where the cursor is, so the open page can scroll to the same file. */
+	onCursorRow: (row: ChangeRow | undefined) => void;
+	/** Tab hands the keyboard to the editor slot — the page's own scroll keys. */
+	onLeave: () => void;
+	onToggleDiffLayout: () => void;
 }) {
 	const [index, setIndex] = createSignal(0);
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
@@ -82,6 +95,15 @@ export function GitPanel(props: {
 		return [...change, ...commitRows(sync.incoming, sync.outgoing, collapsed())];
 	});
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
+	const selectedRow = createMemo(() => rows()[selected()]);
+	// Keyed on what the row *is*, not on the object: a git refresh rebuilds `rows`
+	// with the cursor still on the same file, and reporting that as a move would
+	// yank the page's scroll back to the top of that file.
+	const cursorKey = createMemo(() => {
+		const row = selectedRow();
+		return row ? `${row.kind}:${rowArea(row)}:${rowRel(row)}` : '';
+	});
+	createEffect(on(cursorKey, () => props.onCursorRow(selectedRow())));
 	const headline = () => {
 		const parts = [props.branch ?? 'git'];
 		const upstream = props.upstream;
@@ -125,7 +147,11 @@ export function GitPanel(props: {
 	const activate = (row: ChangeRow | undefined) => {
 		if (!row) return;
 		if (isFoldRow(row)) toggleFold(row);
-		else if (row.kind === 'file') props.onDiff(row.change.path);
+		else if (row.kind === 'commit') props.onOpenCommit(row.oid);
+		else if (row.kind === 'file') {
+			if (props.changesOpen) props.onOpenFile(row.change.path);
+			else props.onDiff(row.change.path);
+		}
 	};
 
 	useKeyboard((key: KeyEvent) => {
@@ -168,20 +194,27 @@ export function GitPanel(props: {
 		} else if (key.name === 'right') {
 			const current = row();
 			if (current && isFoldRow(current) && current.collapsed) toggleFold(current);
-		} else if (plain && key.name === ' ' && staging()) {
+		} else if (key.name === 'tab' && props.changesOpen) props.onLeave();
+		else if (key.name === 'escape' && props.changesOpen) props.onCloseChanges();
+		else if (plain && key.name === ' ' && staging()) {
 			const current = row();
 			if (
 				current &&
 				(current.kind === 'file' || current.kind === 'dir' || current.kind === 'section')
 			)
 				props.onToggleStage(current);
+		} else if (plain && key.name === 'a' && !key.shift) {
+			if (props.changesOpen) props.onCloseChanges();
+			else props.onShowChanges();
+		} else if (plain && ((key.name === 's' && key.shift) || key.name === 'S')) {
+			props.onToggleDiffLayout();
 		} else if (plain && key.name === 'c') {
 			if (props.base) props.onBranchAction('commits');
 			else props.onFocusMessage();
 		} else if (plain && key.name === 'd' && !props.base) {
 			const current = row();
 			if (current?.kind === 'file') props.onDiscard(current.change.path, current.change.status);
-		} else if (plain && key.name === 's') props.onSync();
+		} else if (plain && key.name === 's' && !key.shift) props.onSync();
 		else if (plain && key.name === 'p') props.onPush();
 		else if (plain && key.name === 'b' && !key.shift) props.onBranchAction('switch');
 		else if (plain && ((key.name === 'b' && key.shift) || key.name === 'B'))
@@ -194,12 +227,13 @@ export function GitPanel(props: {
 	});
 
 	const footerHints = () => {
+		if (props.changesOpen) return 'a close · tab page · S layout · ↑↓ file · space stage';
 		const fold = props.view === 'tree' ? ' · ←→ fold' : '';
 		const sync = syncLabel() ? ' · s sync' : '';
 		if (props.base)
-			return `b branch · B compare · c commits · / filter · p push${sync} · enter diff${fold}`;
+			return `b branch · B compare · c commits · / filter · p push${sync} · a all${fold}`;
 		const stage = staging() ? 'space stage · ' : '';
-		return `b branch · B compare · c message · d discard · ${stage}p push${sync} · enter diff${fold}`;
+		return `b branch · B compare · c message · d discard · ${stage}p push${sync} · a all${fold}`;
 	};
 
 	return (

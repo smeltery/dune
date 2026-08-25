@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 
+import { readFile } from './fs';
 import { defaultBranch } from './git';
-import type { FileStatus } from './git';
+import type { ChangeArea, FileStatus } from './git';
 
 export interface DiffFile {
 	path: string;
@@ -41,6 +42,60 @@ function textAtRef(cwd: string, ref: string, rel: string): string | null {
 }
 
 export const hasBinaryContent = (text: string) => text.includes('\0');
+
+/**
+ * The index's own copy of a path — neither HEAD's nor the working tree's while a
+ * file is half-staged. `git show :./x` is how the index is addressed; there is no
+ * ref name for it, and the `./` form resolves against `cwd`, which is what lets
+ * this work in a folder holding several repositories.
+ */
+function indexText(cwd: string, name: string): string | null {
+	const run = git(cwd, ['show', `:./${name}`], 3000);
+	return run.status === 0 ? run.stdout : null;
+}
+
+/**
+ * One side of the source-control panel's split: the same path under "Staged
+ * Changes" and under "Changes" is two different diffs, and `diffFiles` collapses
+ * them into one. Staged is index-against-`ref`; unstaged is working-tree-against
+ * the index when something is staged there, and against `ref` otherwise — which
+ * is what `git diff` with no arguments compares.
+ *
+ * Returns null when the change has no readable text side: a binary blob, or a
+ * file that has since left the disk.
+ */
+export function areaDiffFile(
+	path: string,
+	rel: string,
+	status: FileStatus,
+	area: ChangeArea,
+	ref: string | null = null,
+	oldRel?: string,
+): DiffFile | null {
+	const cwd = dirname(path);
+	const name = basename(path);
+	// `./name` is resolved against `cwd`; a rename's source can be in another
+	// directory entirely, and porcelain reports it from the repository root.
+	const source = oldRel ?? `./${name}`;
+	const staged = status === 'untracked' ? null : indexText(cwd, name);
+	const committed = status === 'untracked' ? '' : (textAtRef(cwd, ref ?? 'HEAD', source) ?? '');
+	const oldText = area === 'staged' ? committed : (staged ?? committed);
+	let newText = '';
+	if (status !== 'deleted') {
+		if (area === 'staged') {
+			newText = staged ?? '';
+		} else {
+			if (!existsSync(path)) return null;
+			try {
+				newText = readFile(path);
+			} catch {
+				return null;
+			}
+		}
+	}
+	if (hasBinaryContent(oldText) || hasBinaryContent(newText)) return null;
+	return { path, rel, status, oldRel, oldText, newText };
+}
 
 const STATUS_BY_CODE: Record<string, FileStatus> = {
 	A: 'added',

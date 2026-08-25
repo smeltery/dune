@@ -1,8 +1,8 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 900,
-		"src/app/AppView.tsx": 690,
+		"src/app/App.tsx": 920,
+		"src/app/AppView.tsx": 720,
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,
@@ -13,6 +13,7 @@
 		"src/editor/vim.ts": 612,
 		"src/ui/EditorPane.tsx": 660,
 		"src/ui/SearchPanel.tsx": 530,
+		"src/ui/ChangesView.tsx": 600,
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
 		"test/git-commands.test.tsx": 755,
