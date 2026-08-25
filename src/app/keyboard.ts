@@ -69,6 +69,10 @@ export function useAppKeyboard(deps: {
 	toggleReviewPanel: () => void;
 	togglePluginsPanel: () => void;
 	toggleMarkdown: () => void;
+	previewToggle: () => void;
+	previewScroll: (pages: number) => void;
+	previewClose: () => void;
+	previewShowing: () => boolean;
 	reviewNoteChooser: () => void;
 	reviewReply: () => void;
 	goToDefinition: () => void;
@@ -258,7 +262,18 @@ export function useAppKeyboard(deps: {
 				break;
 			case 'return':
 			case 'enter':
+				if (node && !node.isDir) deps.previewClose();
 				if (node) deps.activateNode(node);
+				break;
+			case ' ':
+			case 'space':
+				deps.previewToggle();
+				break;
+			case 'pageup':
+				if (deps.previewShowing()) deps.previewScroll(-1);
+				break;
+			case 'pagedown':
+				if (deps.previewShowing()) deps.previewScroll(1);
 				break;
 			case '[':
 				deps.nudgeSidebar(-2);
@@ -282,7 +297,8 @@ export function useAppKeyboard(deps: {
 				deps.paste();
 				break;
 			case 'escape':
-				if (deps.clipboard().paths.length > 0) {
+				if (deps.previewShowing()) deps.previewClose();
+				else if (deps.clipboard().paths.length > 0) {
 					const cancelled = deps.clipboard().mode === 'cut' ? 'Move' : 'Copy';
 					deps.setClipboard({ paths: [], mode: 'cut' });
 					deps.say(`${cancelled} cancelled`);
