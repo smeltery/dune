@@ -29,6 +29,7 @@ export function useEditorKeymap(deps: {
 	deleteSelectedLines: () => void;
 	scrollPage: (delta: -1 | 1) => void;
 	centerCursorLine: () => void;
+	beforeEdit?: (key?: KeyEvent) => void;
 }) {
 	useKeyboard((key: KeyEvent) => {
 		const editor = deps.editor();
@@ -43,6 +44,7 @@ export function useEditorKeymap(deps: {
 		const k = latinKey(key);
 		deps.scheduleCursorSync();
 		deps.setCursorBeforeEdit(editor.cursorOffset);
+		deps.beforeEdit?.(key);
 		if (key.ctrl && k === 'a') {
 			key.preventDefault();
 			editor.selectAll();

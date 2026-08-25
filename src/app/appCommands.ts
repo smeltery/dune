@@ -18,7 +18,7 @@ import type { TreeNode } from '../core/fs';
 import type { ThemeName } from '../themes';
 import { buildCommands } from './commands';
 import { openPathUnderCursor } from './openPathUnderCursor';
-import type { Focus, LineOpRequest, Prompt } from './types';
+import type { Focus, FoldOpRequest, LineOpRequest, Prompt } from './types';
 
 export function createAppCommands(deps: {
 	config: Config;
@@ -93,6 +93,7 @@ export function createAppCommands(deps: {
 	reloadAppearancePlugins: () => void;
 	appearanceVersion: () => AppearancePluginLoad;
 	setLineOp: (update: (prev: LineOpRequest) => NonNullable<LineOpRequest>) => void;
+	setFoldOp: (update: (prev: FoldOpRequest) => NonNullable<FoldOpRequest>) => void;
 	resolveMergeConflict: () => void;
 	acceptMergeConflict: (side: ConflictSide) => void;
 	nextMergeConflict: (direction: 1 | -1) => void;
@@ -280,6 +281,7 @@ export function createAppCommands(deps: {
 				previewTheme: deps.previewTheme,
 				cancelThemePreview: deps.cancelThemePreview,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
+				foldOp: (op) => deps.setFoldOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				resolveMergeConflict: deps.resolveMergeConflict,
 				acceptCurrentChange: () => deps.acceptMergeConflict('ours'),
 				acceptIncomingChange: () => deps.acceptMergeConflict('theirs'),

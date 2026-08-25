@@ -19,6 +19,10 @@ export type LineOpRequest = {
 	op: 'comment' | 'up' | 'down' | 'duplicate' | 'delete' | 'lineHome';
 	key: number;
 } | null;
+export type FoldOpRequest = {
+	op: import('../editor/folds').FoldOp;
+	key: number;
+} | null;
 export type BusyState = { label: string; done: number; total: number } | null;
 
 export interface AppProps {

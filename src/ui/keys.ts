@@ -83,6 +83,18 @@ export const KEYS: KeyInfo[] = [
 	{ key: 'Ctrl+C', label: 'Copy selection — quits if none', section: 'Editing', where: 'all' },
 	{ key: 'Ctrl+X / Ctrl+V', label: 'Cut / paste', section: 'Editing', where: 'editor' },
 	{ key: 'Ctrl+/ · Ctrl+L', label: 'Toggle comment', section: 'Editing', where: 'editor' },
+	{
+		key: `Ctrl+${ALT}+S`,
+		label: 'Fold block at cursor',
+		section: 'Editing',
+		where: 'editor',
+	},
+	{
+		key: `Ctrl+${ALT}+E`,
+		label: 'Unfold block at cursor',
+		section: 'Editing',
+		where: 'editor',
+	},
 	{ key: `${ALT}+↑ / ↓`, label: 'Move line or selection', section: 'Editing', where: 'editor' },
 	{
 		key: 'PgUp/PgDn · ^U/^D',

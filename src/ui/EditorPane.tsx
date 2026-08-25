@@ -5,6 +5,7 @@ import type { CursorStyle } from '../core/config';
 import type { LineChange } from '../core/git';
 import { changeRows } from '../editor/changes';
 import { inCells } from '../editor/columns';
+import type { FoldOp } from '../editor/folds';
 import { History } from '../editor/history';
 import { problemRows } from '../editor/problems';
 import { initialVimState } from '../editor/vim';
@@ -13,9 +14,11 @@ import { logicalWindow } from '../editor/window';
 import type { ProblemSeverity } from '../lsp/protocol';
 import { computeHighlights, getSyntaxStyle, segmentsIn, STALE } from '../languages/highlight';
 import type { Highlighted, Segment } from '../languages/highlight';
+import { ui } from '../themes';
 import type { ThemeName } from '../themes';
 import type { GutterHost } from './EditorPaneBody';
 import { EditorPaneContent } from './EditorPaneContent';
+import { createEditorFolds } from './editorFolds';
 import {
 	afterResize,
 	allowScrollPastEnd,
@@ -43,6 +46,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 		op: 'comment' | 'up' | 'down' | 'duplicate' | 'delete' | 'lineHome';
 		key: number;
 	} | null;
+	foldOp: { op: FoldOp; key: number } | null;
 	vim: boolean;
 	cursorStyle: CursorStyle;
 	wrap: boolean;
@@ -103,8 +107,67 @@ export function EditorPane(props: EditorPaneProps) {
 		const width = gutterWidth();
 		if (gutter?.gutter) gutter.gutter['_minWidth'] = width;
 	});
+
+	const keepingView = (rewrite: () => void) => {
+		const wasTop = editor ? folds.realLine(layout.lineAtRow(editor.scrollY)) : 0;
+		rewrite();
+		layout.forget();
+		if (!editor) return;
+		scrollTo(folds.shownLine(wasTop));
+		const height = editor.height;
+		if (height <= 0) return;
+		const caret = layout.rowAtLine(editor.logicalCursor.row);
+		if (caret < editor.scrollY) scrollTextarea(editor, caret - editor.scrollY);
+		else if (caret >= editor.scrollY + height)
+			scrollTextarea(editor, caret - height + 1 - editor.scrollY);
+	};
+
+	const folds = createEditorFolds({
+		editor: () => editor,
+		path: () => props.path,
+		content: () => props.content,
+		tabSize: () => props.tabSize,
+		host: () => host,
+		viewTop,
+		viewHeight,
+		lineLayout: () => layout.lineLayout(),
+		rowAtLine: layout.rowAtLine,
+		wrapKey,
+		applyWindow: (force) => applyWindow(force),
+		scheduleCursorSync: () => scheduleCursorSync(),
+		keepingView,
+	});
+
 	const applyLineSigns = () => {
-		gutter?.setLineSigns?.(editorLineSigns(props.gitLines, props.problems));
+		const view = folds.folded();
+		const raw = editorLineSigns(props.gitLines, props.problems);
+		const signs = new Map<
+			number,
+			{ before?: string; beforeColor?: string; after?: string; afterColor?: string }
+		>();
+		for (const [line, sign] of raw) {
+			const row = view ? (view.display[line] ?? -1) : line;
+			if (row < 0) continue;
+			signs.set(row, sign);
+		}
+		if (signs.size === 0) signs.set(0, { before: ' ' });
+		const markers = folds.foldMarkers();
+		if (markers.length > 0) {
+			signs.set(0, { ...signs.get(0), after: signs.get(0)?.after ?? ' ' });
+			const closed = new Set(view?.folds.map((fold) => fold.start));
+			for (const marker of markers) {
+				const row = view ? (view.display[marker.line] ?? -1) : marker.line;
+				if (row < 0) continue;
+				const shut = closed.has(marker.line);
+				signs.set(row, {
+					...signs.get(row),
+					after: shut ? '▸' : '▾',
+					afterColor: shut ? ui.text : ui.gutter,
+				});
+			}
+		}
+		gutter?.setLineSigns?.(signs);
+		gutter?.setLineNumbers?.(folds.lineNumberMap());
 	};
 	createEffect(applyLineSigns);
 	const syncViewport = () => {
@@ -120,8 +183,9 @@ export function EditorPane(props: EditorPaneProps) {
 		syncViewport();
 		const at = editor.visualCursor;
 		if (!at) return;
-		if (at.logicalRow === cursor.line && at.logicalCol === cursor.col) return;
-		cursor.line = at.logicalRow;
+		const line = folds.realLine(at.logicalRow);
+		if (line === cursor.line && at.logicalCol === cursor.col) return;
+		cursor.line = line;
 		cursor.col = at.logicalCol;
 		setCursorLine(at.visualRow);
 		props.onCursor({ ...cursor });
@@ -366,7 +430,10 @@ export function EditorPane(props: EditorPaneProps) {
 		editor: () => editor,
 		vimState,
 		renderer,
-		onChange: props.onChange,
+		onChange: (text) => {
+			if (folds.refolding()) return;
+			props.onChange(text);
+		},
 		onQuit: props.onQuit,
 		onVimMode: (mode) => {
 			if (mode) setVimMode(mode);
@@ -383,14 +450,26 @@ export function EditorPane(props: EditorPaneProps) {
 		deleteSelectedLines,
 		scrollPage,
 		centerCursorLine,
+		beforeEdit: (key) => folds.releaseFoldForEdit(key),
 	});
+	createEffect(
+		on(
+			() => props.foldOp?.key,
+			() => {
+				const request = props.foldOp;
+				if (request) folds.runFoldOp(request.op);
+			},
+			{ defer: true },
+		),
+	);
 	createEffect(
 		on(
 			() => props.path,
 			() => {
 				if (!editor) return;
 				scheduleCursorSync();
-				if (editor.plainText !== props.content) editor.setText(props.content);
+				const text = folds.restoreForPath(props.path, props.content);
+				if (editor.plainText !== text) editor.setText(text);
 				editor.setCursor(0, 0);
 				history.reset({ content: props.content, cursor: 0 });
 				editor.syntaxStyle = getSyntaxStyle();
@@ -451,7 +530,9 @@ export function EditorPane(props: EditorPaneProps) {
 		on(
 			() => props.reloadKey,
 			() => {
-				if (editor && props.content !== editor.plainText) {
+				if (!editor) return;
+				folds.clearFolds();
+				if (props.content !== editor.plainText) {
 					editor.setText(props.content);
 					history.reset({ content: props.content, cursor: editor.cursorOffset });
 					rehighlight(props.content);
@@ -465,7 +546,8 @@ export function EditorPane(props: EditorPaneProps) {
 			() => props.edit?.key,
 			() => {
 				const edit = props.edit;
-				if (!edit || !editor || edit.content === editor.plainText) return;
+				if (!edit || !editor || edit.content === folds.docText()) return;
+				folds.clearFolds();
 				const at = editor.cursorOffset;
 				editor.setText(edit.content);
 				editor.cursorOffset = Math.min(at, edit.content.length);
@@ -482,7 +564,7 @@ export function EditorPane(props: EditorPaneProps) {
 			() => {
 				const target = props.goto;
 				if (!target || !editor) return;
-				editor.setCursor(target.line, target.col);
+				editor.setCursor(folds.shownLine(target.line), target.col);
 				editor.focus();
 			},
 		),
@@ -501,6 +583,8 @@ export function EditorPane(props: EditorPaneProps) {
 			changeTrack={changeTrack()}
 			problemTrack={problemTrack()}
 			problemNotes={problemNotes()}
+			foldNotes={folds.foldNotes()}
+			foldMarkers={folds.foldMarkers()}
 			scrollbar={scrollbar()}
 			dragging={dragging()}
 			completionMenu={completion.menu()}
@@ -532,9 +616,10 @@ export function EditorPane(props: EditorPaneProps) {
 				onCleanup(releaseEditor);
 			}}
 			onContentChange={() => {
-				if (!editor) return;
-				history.record({ content: editor.plainText, cursor: cursorBeforeEdit }, Date.now());
-				props.onChange(editor.plainText);
+				if (!editor || folds.refolding()) return;
+				const source = folds.syncDocument();
+				history.record({ content: source, cursor: cursorBeforeEdit }, Date.now());
+				props.onChange(source);
 				scheduleHighlight();
 			}}
 			onMouse={() => applyWindow()}
@@ -550,6 +635,7 @@ export function EditorPane(props: EditorPaneProps) {
 			onTrack={(el) => {
 				track = el;
 			}}
+			onToggleFold={(line) => folds.toggleFoldAt(line)}
 		/>
 	);
 }

@@ -6,6 +6,7 @@ import type { ProblemSeverity } from '../lsp/protocol';
 import { ui } from '../themes';
 import { EditorEmptyState, EditorNotice } from './EditorEmptyState';
 import { EditorPaneBody } from './EditorPaneBody';
+import type { FoldNote } from './editorFolds';
 import type { ProblemNote } from './editorHost';
 
 export function EditorPaneContent(props: {
@@ -21,6 +22,8 @@ export function EditorPaneContent(props: {
 	changeTrack: (LineChange | undefined)[];
 	problemTrack: (ProblemSeverity | undefined)[];
 	problemNotes: ProblemNote[];
+	foldNotes: FoldNote[];
+	foldMarkers: { top: number; left: number; line: number }[];
 	scrollbar: boolean[];
 	dragging: boolean;
 	completionMenu?: JSX.Element;
@@ -36,6 +39,7 @@ export function EditorPaneContent(props: {
 	onJumpTrack: (row: number) => void;
 	onStartScrollbarDrag: (y: number) => void;
 	onTrack: (el: { y: number }) => void;
+	onToggleFold: (line: number) => void;
 }) {
 	return (
 		<box flexGrow={1} flexDirection="column" backgroundColor={ui.bg}>
@@ -55,6 +59,8 @@ export function EditorPaneContent(props: {
 					changeTrack={props.changeTrack}
 					problemTrack={props.problemTrack}
 					problemNotes={props.problemNotes}
+					foldNotes={props.foldNotes}
+					foldMarkers={props.foldMarkers}
 					scrollbar={props.scrollbar}
 					dragging={props.dragging}
 					onFocus={props.onFocus}
@@ -69,6 +75,7 @@ export function EditorPaneContent(props: {
 					onJumpTrack={props.onJumpTrack}
 					onStartScrollbarDrag={props.onStartScrollbarDrag}
 					onTrack={props.onTrack}
+					onToggleFold={props.onToggleFold}
 				/>
 				{props.completionMenu}
 			</Show>
