@@ -2,11 +2,7 @@
 	"default_lines": 500,
 	"files": {
 		"src/app/App.tsx": 900,
-<<<<<<< HEAD
 		"src/app/AppView.tsx": 680,
-=======
-		"src/app/AppView.tsx": 650,
->>>>>>> fe8c37d (feat: inline SCM commit box with message history (druk gap))
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,
@@ -19,12 +15,8 @@
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
 		"test/git-commands.test.tsx": 755,
-<<<<<<< HEAD
 		"src/ui/overlays/GitPanel.tsx": 500,
 		"src/app/keyboard.ts": 420
-=======
-		"src/ui/overlays/GitPanel.tsx": 500
->>>>>>> fe8c37d (feat: inline SCM commit box with message history (druk gap))
 	},
 	"exclude": ["^bun\\.lock$"]
 }
