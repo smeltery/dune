@@ -739,11 +739,11 @@ export function App(props: AppTypes.AppProps) {
 				expanded={expanded()}
 				focus={focus()}
 				peekScope={
-					pluginsPanel()
+					sidebarView() === 'plugins'
 						? 'plugins'
-						: reviewPanel()
+						: sidebarView() === 'review'
 							? 'review'
-							: gitCommands.panel()
+							: sidebarView() === 'git'
 								? 'git'
 								: focus()
 				}
