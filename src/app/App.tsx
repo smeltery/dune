@@ -242,7 +242,7 @@ export function App(props: AppTypes.AppProps) {
 	} = fileActions;
 	const preview = createPreview({
 		sidebar,
-		focus: () => (gitCommands.panel() || reviewPanel() || pluginsPanel() ? 'gitPanel' : focus()),
+		focus: () => (sidebarView() !== 'files' ? 'gitPanel' : focus()),
 		selectedNode: () => {
 			const node = selectedNode();
 			return node ? { path: node.path, isDir: node.isDir } : null;
@@ -329,6 +329,7 @@ export function App(props: AppTypes.AppProps) {
 		say,
 		whileFree,
 		syncFromDisk: () => documentActions.syncFromDisk(),
+		showView: (view: SidebarView) => showView(view),
 	});
 	const activeRepo = () => {
 		const path = activePath();

@@ -57,6 +57,7 @@ import type { FileStatus, GitResult, StatusEntry, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
 import type { CommitFile } from '../ui/CommitModal';
 import type { Tone } from '../ui/StatusBar';
+import type { SidebarView } from './panes';
 import type { Prompt } from './types';
 
 export function createGitCommands(deps: {
@@ -73,6 +74,7 @@ export function createGitCommands(deps: {
 	say: (msg: string, tone?: Tone) => void;
 	whileFree: (run: () => void) => void;
 	syncFromDisk: () => void;
+	showView: (view: SidebarView) => void;
 }) {
 	const diffBase = deps.diffBase;
 	const setDiffBase = deps.setDiffBase;
@@ -412,7 +414,7 @@ export function createGitCommands(deps: {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
 		if (diffBase() !== null)
 			return deps.say('Comparing against a branch — nothing to commit here', 'warn');
-		setPanel(true);
+		deps.showView('git');
 		setMessageEditing(true);
 		loadMessageHistory();
 	};
