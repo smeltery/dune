@@ -46,6 +46,7 @@ import { createReview } from './review';
 import { createAppSettingRows } from './settings/view';
 import { createSidebarSizing } from './sidebarSizing';
 import { editedBuffer } from './state/buffers';
+import { createComparison } from './state/comparison';
 import { createTreeSelection } from './treeSelection';
 import { hiddenTreeNodes as hiddenNodes } from './treeVisibility';
 import type * as AppTypes from './types';
@@ -242,7 +243,8 @@ export function App(props: AppTypes.AppProps) {
 	} = fileActions;
 	const preview = createPreview({
 		sidebar,
-		focus: () => (sidebarView() !== 'files' ? 'gitPanel' : focus()),
+		focus: () =>
+			sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus(),
 		selectedNode: () => {
 			const node = selectedNode();
 			return node ? { path: node.path, isDir: node.isDir } : null;
@@ -348,8 +350,11 @@ export function App(props: AppTypes.AppProps) {
 		const repos = discoverRepos(rootDir, config.gitScanDepth);
 		return repos.length === 1 ? repos[0]! : null;
 	};
+	const comparison = createComparison({ rootDir, activeRepo, branch, diffBase, say });
+	createEffect(on(gitRevision, () => comparison.refresh(), { defer: true }));
 	/** Open the sidebar on one of its views, as the tab strip above it does. */
 	const showView = (next: SidebarView) => {
+		comparison.close();
 		setSidebarView(next);
 		setSidebar(true);
 		setFocus('tree');
@@ -400,6 +405,12 @@ export function App(props: AppTypes.AppProps) {
 	const toggleGitPanel = () => {
 		if (sidebar() && sidebarView() === 'git') return showView('files');
 		showView('git');
+	};
+	const openComparison = () => {
+		gitCommands.closeChanges();
+		setSidebar(true);
+		setFocus('tree');
+		comparison.open();
 	};
 	const chooseReviewKind = (kind: string) => {
 		const ask = prompt();
@@ -473,6 +484,7 @@ export function App(props: AppTypes.AppProps) {
 		picker,
 		problemsOpen,
 		commitFiles: gitCommands.commitFiles,
+		comparisonBase: comparison.basePick,
 	});
 	const { nudgeSidebar, resizeSidebar, treeWidth } = createSidebarSizing({
 		config,
@@ -554,7 +566,11 @@ export function App(props: AppTypes.AppProps) {
 		acceptMergeConflict: mergeConflicts.accept,
 		nextMergeConflict: mergeConflicts.next,
 		patchConfig,
-		gitCommands: { ...gitCommands, sourceControl: toggleGitPanel },
+		gitCommands: {
+			...gitCommands,
+			sourceControl: toggleGitPanel,
+			openBranchComparison: openComparison,
+		},
 		setHelp,
 		say,
 		quit,
@@ -608,7 +624,8 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus: () => (sidebarView() !== 'files' ? 'gitPanel' : focus()),
+		focus: () =>
+			sidebarView() !== 'files' || comparison.active() ? 'gitPanel' : focus(),
 		help,
 		marked,
 		notice,
@@ -772,6 +789,7 @@ export function App(props: AppTypes.AppProps) {
 				changesFocus={gitCommands.changesFocus()}
 				changesTitle={gitCommands.changesTitle()}
 				review={review}
+				comparison={comparison}
 				plugins={plugins}
 				previewTarget={preview.target()}
 				previewScroll={preview.scrollRequest()}
@@ -834,7 +852,10 @@ export function App(props: AppTypes.AppProps) {
 				onLeaveGitPanel={() => setFocus('editor')}
 				onGitPush={gitCommands.push}
 				onGitSync={gitCommands.sync}
-				onGitBranchAction={gitCommands.openPanelBranchAction}
+				onGitBranchAction={(action) =>
+					action === 'compare' ? openComparison() : gitCommands.openPanelBranchAction(action)
+				}
+				onCloseComparison={comparison.close}
 				onOpenReview={() => {
 					showView('review');
 					review.autoFetch();

@@ -123,10 +123,29 @@ export async function until(t: Harness, done: () => boolean, attempts = 20) {
 	return until(t, done, attempts - 1);
 }
 
+/** `until`, on the rendered frame. */
 export async function untilFrame(t: Harness, text: string, attempts = 40) {
 	await until(t, () => t.captureCharFrame().includes(text), attempts);
 }
 
+/** `untilFrame`'s opposite: wait for something on screen to go away. */
 export async function untilGone(t: Harness, text: string, attempts = 40) {
 	await until(t, () => !t.captureCharFrame().includes(text), attempts);
+}
+
+/** Send one key `times` and flush once — cheaper than `press` in a loop. */
+export async function pressTimes(
+	t: Harness,
+	times: number,
+	action: (input: Harness['mockInput']) => void,
+) {
+	for (let n = 0; n < times; n++) action(t.mockInput);
+	await settle(t);
+}
+
+/** Enter branch comparison from the source-control panel. */
+export async function openComparison(t: Harness) {
+	await runCommand(t, 'Source Control');
+	await press(t, (input) => input.pressKey('b', { shift: true }));
+	await untilFrame(t, 'compare');
 }

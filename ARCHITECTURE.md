@@ -28,6 +28,7 @@ scripts/
     search.ts        in-file/project search, fuzzy matching, replace
     git.ts           diff hunks, status, branch, ahead/behind, plus async mutations
                      (commit, push, pull, fetch, stash, branch actions)
+    git/compare.ts   branch comparison: merge base, changed files, commits, lazy blobs
     messageHistory.ts shared one-line prompt history walking for commit subjects
     review.ts        persisted local review notes
     forge.ts         read-only pull-request discovery/comments for review
@@ -61,6 +62,8 @@ scripts/
     EditorPane, FileTree, Tabs, StatusBar, CommandPalette, FilePicker,
     SearchPanel, MarkdownView, ImageView, UpdateBanner, Overlay, TextInput, PromptModal,
     ConfirmModal, ChoiceModal, HelpOverlay
+    overlays/       full-slot views and panels: DiffView, GitPanel, ComparePanel,
+                    ComparisonView, SettingsView, LspStatusView, PluginsPanel, …
     viewers/        read-only image/PDF viewer composition
 ```
 

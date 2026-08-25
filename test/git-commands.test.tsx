@@ -414,37 +414,6 @@ test("file history lists the open file's past commits and opens one scoped to it
 	expect(diffFrame).toContain('+ two');
 });
 
-test('branch comparison reports commit and file totals', async () => {
-	const dir = repo('one\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	writeFileSync(join(dir, 'a.ts'), 'two\n');
-	git('commit', '-qam', 'change a');
-	git('switch', '-q', 'main');
-	writeFileSync(join(dir, 'base.ts'), 'base\n');
-	git('add', '.');
-	git('commit', '-q', '-m', 'base change');
-	git('switch', '-q', 'feature');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-
-	expect(t.captureCharFrame()).toContain('↑1 ↓1, 1 files, +1 -1');
-});
-
-test('branch comparison reports a clean zero-file state', async () => {
-	const dir = repo('one\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-
-	expect(t.captureCharFrame()).toContain('No differences from main: ↑0 ↓0, 0 files');
-});
-
 test('source control comparison opens commits for its base', async () => {
 	const dir = repo('one\n');
 	const git = (...args: string[]) => runGit(dir, ...args);
@@ -521,81 +490,6 @@ test('discarding an untracked file deletes it', async () => {
 	await press(t, (input) => input.pressEnter());
 
 	await until(t, () => !existsSync(join(dir, 'b.ts')));
-});
-
-test('branch comparison diff names both sides of a rename', async () => {
-	const dir = repo('one\ntwo\nthree\nfour\nfive\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	execFileSync('git', ['mv', 'a.ts', 'renamed.ts'], { cwd: dir });
-	writeFileSync(join(dir, 'renamed.ts'), 'ONE\ntwo\nthree\nfour\nfive\n');
-	git('add', '.');
-	git('commit', '-q', '-m', 'rename file');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-	expect(t.captureCharFrame()).toContain('a.ts -> renamed.ts');
-});
-
-test('branch comparison file picker filters renamed files by old path', async () => {
-	const dir = repo('one\ntwo\nthree\nfour\nfive\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	execFileSync('git', ['mv', 'a.ts', 'renamed.ts'], { cwd: dir });
-	writeFileSync(join(dir, 'renamed.ts'), 'ONE\ntwo\nthree\nfour\nfive\n');
-	writeFileSync(join(dir, 'other.ts'), 'other\n');
-	git('add', '.');
-	git('commit', '-q', '-m', 'rename file');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-	await press(t, (input) => void input.typeText('f'));
-	await press(t, (input) => void input.typeText('a.ts'));
-	const frame = t.captureCharFrame();
-	expect(frame).toContain('a.ts -> renamed.ts');
-	expect(frame).toContain('Filter: a.ts (1/2)');
-	expect(frame).not.toContain('other.ts +1 -0');
-});
-
-test('branch comparison reports binary files instead of rendering bytes', async () => {
-	const dir = repo('one\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	writeFileSync(join(dir, 'image.bin'), new Uint8Array([0, 1, 2]));
-	writeFileSync(join(dir, 'text.ts'), 'text\n');
-	git('add', '.');
-	git('commit', '-q', '-m', 'mixed files');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-
-	expect(t.captureCharFrame()).toContain('1 binary');
-	expect(t.captureCharFrame()).toContain('Binary file');
-	expect(t.captureCharFrame()).toContain('textual diff is not available');
-	await press(t, (input) => void input.typeText('f'));
-	expect(t.captureCharFrame()).toContain('image.bin binary');
-	expect(t.captureCharFrame()).toContain('text.ts +1 -0');
-});
-
-test('diff overlay toggles layout while viewing a branch comparison', async () => {
-	const dir = repo('one\ntwo\n');
-	const git = (...args: string[]) => runGit(dir, ...args);
-	git('switch', '-q', '-c', 'feature');
-	writeFileSync(join(dir, 'a.ts'), 'one\nTWO\nthree\n');
-	git('commit', '-qam', 'change a');
-
-	const t = await launch(dir);
-	await runCommand(t, 'Compare branches');
-	await press(t, (input) => input.pressEnter());
-	expect(t.captureCharFrame()).toContain('inline');
-
-	await press(t, (input) => void input.typeText('d'));
-	const frame = t.captureCharFrame();
-	expect(frame).toContain('split');
-	expect(frame).toContain('│');
 });
 
 test('rename branch command renames the selected local branch', async () => {
