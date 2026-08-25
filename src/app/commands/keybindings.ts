@@ -18,6 +18,8 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'file.copyRelativePath', label: 'Copy relative path' },
 	{ id: 'tabs.close', label: 'Close tab' },
 	{ id: 'view.sidebar', label: 'Toggle sidebar' },
+	{ id: 'view.sidebarPosition', label: 'Toggle sidebar position' },
+	{ id: 'git.diffLayout', label: 'Toggle diff layout' },
 	{ id: 'view.markdown', label: 'Markdown: rendered / source' },
 	{ id: 'view.wrap', label: 'Toggle word wrap' },
 	{ id: 'git.sourceControl', label: 'Source control panel' },

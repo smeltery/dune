@@ -106,6 +106,16 @@ export function createAppControls(deps: {
 		patch({ transparent: next });
 		deps.say(`Transparent background ${next ? 'on' : 'off'}`);
 	};
+	const toggleSidebarPosition = () => {
+		const next = deps.config.sidebarPosition === 'left' ? 'right' : 'left';
+		patch({ sidebarPosition: next });
+		deps.say(`Sidebar position: ${next}`);
+	};
+	const toggleDiffView = () => {
+		const next = deps.config.diffView === 'inline' ? 'split' : 'inline';
+		patch({ diffView: next });
+		deps.say(`Diff layout: ${next === 'inline' ? 'inline' : 'side-by-side'}`);
+	};
 	const withNode = (run: (node: TreeNode) => void) => () => {
 		const node = deps.selectedNode();
 		if (node) run(node);
@@ -143,6 +153,8 @@ export function createAppControls(deps: {
 		toggleAutoSave,
 		toggleThemeSync,
 		toggleTransparent,
+		toggleSidebarPosition,
+		toggleDiffView,
 		withNode,
 	};
 }
