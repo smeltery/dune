@@ -71,6 +71,8 @@ export interface Config {
 	cursorStyle: CursorStyle;
 	/** Soft-wrap long lines at the editor edge. */
 	wrap: boolean;
+	/** Let the editor scroll until the last line sits at the top of the pane. */
+	scrollPastEnd: boolean;
 	/** Columns per indent level: indent guides and literal tabs both use it. */
 	tabSize: number;
 	/**
@@ -143,6 +145,7 @@ export const DEFAULTS: Config = {
 	vim: false,
 	cursorStyle: 'block',
 	wrap: true,
+	scrollPastEnd: true,
 	tabSize: 2,
 	sidebarWidth: 'auto',
 	sidebarPosition: 'left',
@@ -190,6 +193,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 		config.cursorStyle = obj.cursorStyle as CursorStyle;
 	}
 	if (typeof obj.wrap === 'boolean') config.wrap = obj.wrap;
+	if (typeof obj.scrollPastEnd === 'boolean') config.scrollPastEnd = obj.scrollPastEnd;
 	if (typeof obj.tabSize === 'number' && obj.tabSize >= 1 && obj.tabSize <= 16) {
 		config.tabSize = Math.floor(obj.tabSize);
 	}

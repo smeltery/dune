@@ -46,6 +46,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	vim: boolean;
 	cursorStyle: CursorStyle;
 	wrap: boolean;
+	scrollPastEnd: boolean;
 	tabSize: number;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
@@ -93,6 +94,7 @@ export function EditorPane(props: EditorPaneProps) {
 		viewport,
 		lineCount,
 		layout.lineAtRow,
+		() => props.scrollPastEnd,
 	);
 	let track: { y: number } | undefined;
 	const [dragging, setDragging] = createSignal(false);
@@ -518,7 +520,7 @@ export function EditorPane(props: EditorPaneProps) {
 				setEditorEl(el);
 				editor.cursorStyle = { style: effectiveCursorStyle(), blinking: true };
 				ignoreScrollOutsideBounds(el);
-				allowScrollPastEnd(el, () => props.focused);
+				allowScrollPastEnd(el, () => props.focused && props.scrollPastEnd);
 				afterResize(el, () => {
 					applyLineSigns();
 					syncViewport();

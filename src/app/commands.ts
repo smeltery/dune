@@ -97,6 +97,7 @@ export interface CommandActions {
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
 	problemsList: () => void;
+	problemsAtCursor: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
 	problemsRestart: () => void;
@@ -104,7 +105,9 @@ export interface CommandActions {
 	completion: () => void;
 	reviewOpen: () => void;
 	reviewFetch: () => void;
+	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
+	reviewReply: () => void;
 	reviewClear: () => void;
 	commit: () => void;
 	commitPush: () => void;
@@ -494,7 +497,18 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			id: 'review',
 			label: 'Review',
 			children: [
-				{ id: 'review.open', label: 'Open review panel', run: actions.reviewOpen },
+				{
+					id: 'review.open',
+					label: 'Open review panel',
+					hint: `Ctrl+${ALT}+R`,
+					run: actions.reviewOpen,
+				},
+				{
+					id: 'review.note',
+					label: 'Note this line…',
+					hint: `Ctrl+${ALT}+A`,
+					run: actions.reviewNoteChooser,
+				},
 				{ id: 'review.issue', label: 'Add issue note', run: () => actions.reviewNote('issue') },
 				{
 					id: 'review.suggestion',
@@ -506,7 +520,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					label: 'Add question note',
 					run: () => actions.reviewNote('question'),
 				},
-				{ id: 'review.note', label: 'Add note', run: () => actions.reviewNote('note') },
+				{ id: 'review.note.plain', label: 'Add note', run: () => actions.reviewNote('note') },
+				{
+					id: 'review.reply',
+					label: 'Reply to the remark under the cursor…',
+					run: actions.reviewReply,
+				},
 				{
 					id: 'review.fetch',
 					label: 'Fetch pull request comments',
@@ -520,6 +539,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 			label: 'Problems',
 			children: [
 				{ id: 'problems.list', label: 'List problems', run: actions.problemsList },
+				{
+					id: 'problems.detail',
+					label: 'Show problem at cursor',
+					hint: `Ctrl+${ALT}+I`,
+					run: actions.problemsAtCursor,
+				},
 				{ id: 'problems.next', label: 'Next problem', run: actions.problemsNext },
 				{ id: 'problems.prev', label: 'Previous problem', run: actions.problemsPrev },
 				{ id: 'problems.restart', label: 'Restart language servers', run: actions.problemsRestart },

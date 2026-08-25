@@ -4,6 +4,7 @@ import { createStore, produce } from 'solid-js/store';
 import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
 import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
+import { NOTE_KINDS } from '../core/review';
 import { discoverRepos, repoOf } from '../core/vcs/repos';
 import { invalidateSyntaxStyle } from '../languages/highlight';
 import { setTheme } from '../themes';
@@ -23,7 +24,7 @@ import { startupOpen, useAppLifecycle } from './lifecycle';
 import { problemFrom, wireAppLspEffects } from './lsp/index';
 import { createCompletionActions } from './lsp/completionActions';
 import { createDuneAppLsp } from './lsp/pluginSuggestion';
-import { createProblemUi } from './lsp/view';
+import { createProblemUi, type ProblemsScope } from './lsp/view';
 import { createMarkdownView } from './markdown/view';
 import { createMergeConflictActions } from './commands/mergeConflicts';
 import { createNavigation } from './navigation';
@@ -72,7 +73,7 @@ export function App(props: AppTypes.AppProps) {
 	const [reloadKey, setReloadKey] = createSignal(0);
 	const [conflict, setConflict] = createSignal<AppTypes.Conflict | null>(null);
 	const [search, setSearch] = createSignal<AppTypes.SearchState>(null);
-	const [problemsOpen, setProblemsOpen] = createSignal(false);
+	const [problemsOpen, setProblemsOpen] = createSignal<ProblemsScope | false>(false);
 	const [picker, setPicker] = createSignal<AppTypes.PickerState>(null);
 	const [clipboard, setClipboard] = createSignal({ paths: [] as string[], mode: 'cut' as const });
 	const cut = () => (clipboard().mode === 'cut' ? clipboard().paths : []);
@@ -311,6 +312,7 @@ export function App(props: AppTypes.AppProps) {
 		rootDir,
 		config,
 		activePath,
+		activeLine: () => cursor().line,
 		activeRepo,
 		branch,
 		openFile,
@@ -460,6 +462,11 @@ export function App(props: AppTypes.AppProps) {
 			review.autoFetch();
 		},
 		reviewFetch: review.fetchPullRequest,
+		reviewNoteChooser: () => {
+			const path = activePath();
+			if (!path) return say('No file to review', 'warn');
+			setPrompt({ kind: 'reviewKind', path, line: cursor().line, endLine: cursor().line });
+		},
 		reviewNote: (kind) => {
 			const path = activePath();
 			if (!path) return say('No file to review', 'warn');
@@ -470,6 +477,11 @@ export function App(props: AppTypes.AppProps) {
 				line: cursor().line,
 				endLine: cursor().line,
 			});
+		},
+		reviewReply: () => {
+			const parent = review.replyTarget();
+			if (!parent) return;
+			setPrompt({ kind: 'reviewReply', parentId: parent.id });
 		},
 		reviewClear: review.clear,
 		completion,
@@ -574,9 +586,29 @@ export function App(props: AppTypes.AppProps) {
 		toggleExpand,
 		toggleSidebar,
 		toggleGitPanel: gitCommands.togglePanel,
+		toggleReviewPanel: () => {
+			setSidebar(true);
+			gitCommands.setPanel(false);
+			setReviewPanel((was) => {
+				if (!was) review.autoFetch();
+				return !was;
+			});
+			setFocus('tree');
+		},
 		toggleMarkdown,
+		reviewNoteChooser: () => {
+			const path = activePath();
+			if (!path) return say('No file to review', 'warn');
+			setPrompt({ kind: 'reviewKind', path, line: cursor().line, endLine: cursor().line });
+		},
+		reviewReply: () => {
+			const parent = review.replyTarget();
+			if (!parent) return;
+			setPrompt({ kind: 'reviewReply', parentId: parent.id });
+		},
 		goToDefinition,
 		problemsList: problemUi.list,
+		problemsAtCursor: problemUi.atCursor,
 		problemsNext: () => problemUi.next(1),
 		problemsPrev: () => problemUi.next(-1),
 		problemsRestart: () =>
@@ -649,6 +681,21 @@ export function App(props: AppTypes.AppProps) {
 				problemCounts={problemUi.counts()}
 				problemChoices={problemUi.choices()}
 				problemsOpen={problemsOpen()}
+				problemsTitle={problemsOpen() === 'cursor' ? 'Problem at cursor' : 'Problems'}
+				prompt={prompt()}
+				onChooseReviewKind={(kind) => {
+					const ask = prompt();
+					setPrompt(null);
+					if (ask?.kind !== 'reviewKind') return;
+					if (!NOTE_KINDS.includes(kind as (typeof NOTE_KINDS)[number])) return;
+					setPrompt({
+						kind: 'reviewNote',
+						noteKind: kind as (typeof NOTE_KINDS)[number],
+						path: ask.path,
+						line: ask.line,
+						endLine: ask.endLine,
+					});
+				}}
 				lspStatusRows={lsp.statusRows()}
 				lspStatusOpen={lspStatusOpen()}
 				notice={notice()}

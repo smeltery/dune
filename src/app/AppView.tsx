@@ -47,8 +47,9 @@ import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
 import type { LspStatusRow } from './lsp';
-import type { Review } from './review';
-import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest } from './types';
+import { KIND_CHOICES, type Review } from './review';
+import type { ProblemsScope } from './lsp/view';
+import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
 
 const GRIP = [0, 1, 2, 3, 4];
 
@@ -83,7 +84,9 @@ interface AppViewProps {
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
 	problemCounts: { errors: number; warnings: number };
 	problemChoices: Choice[];
-	problemsOpen: boolean;
+	problemsOpen: ProblemsScope | false;
+	problemsTitle: string;
+	prompt: Prompt;
 	lspStatusRows: LspStatusRow[];
 	lspStatusOpen: boolean;
 	notice: { name: string; reason: string } | null;
@@ -162,6 +165,7 @@ interface AppViewProps {
 	onCloseSettings: () => void;
 	onPickProblem: (id: string) => void;
 	onCloseProblems: () => void;
+	onChooseReviewKind: (kind: string) => void;
 	onCloseLspStatus: () => void;
 	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
@@ -336,6 +340,7 @@ export function AppView(props: AppViewProps) {
 									vim={props.config.vim}
 									cursorStyle={props.config.cursorStyle}
 									wrap={props.config.wrap}
+									scrollPastEnd={props.config.scrollPastEnd}
 									tabSize={props.config.tabSize}
 									gitLines={props.gitLines}
 									problems={props.problems}
@@ -477,12 +482,23 @@ export function AppView(props: AppViewProps) {
 			</Show>
 			<Show when={props.problemsOpen}>
 				<ChoiceModal
-					title="Problems"
+					title={props.problemsTitle}
 					message="Enter jumps to the selected diagnostic."
 					choices={props.problemChoices}
 					onPick={props.onPickProblem}
 					onCancel={props.onCloseProblems}
 				/>
+			</Show>
+			<Show when={props.prompt?.kind === 'reviewKind' ? props.prompt : undefined}>
+				{(ask: () => Extract<NonNullable<Prompt>, { kind: 'reviewKind' }>) => (
+					<ChoiceModal
+						title="Review note"
+						message={`What kind of remark is this, on ${basename(ask().path)}:${ask().line + 1}?`}
+						choices={KIND_CHOICES}
+						onPick={props.onChooseReviewKind}
+						onCancel={props.onCancelPrompt}
+					/>
+				)}
 			</Show>
 			<Show when={props.lspStatusOpen}>
 				<LspStatusView rows={props.lspStatusRows} onClose={props.onCloseLspStatus} />

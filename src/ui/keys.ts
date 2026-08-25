@@ -59,6 +59,14 @@ export const KEYS: KeyInfo[] = [
 		where: 'editor',
 	},
 	{ key: `Ctrl+${ALT}+G`, label: 'Source control', section: 'General', where: 'all' },
+	{ key: `Ctrl+${ALT}+R`, label: 'Review panel', section: 'General', where: 'all' },
+	{
+		key: `Ctrl+${ALT}+A`,
+		label: 'Note this line for a review',
+		section: 'General',
+		where: 'editor',
+	},
+	{ key: `Ctrl+${ALT}+I`, label: 'Show problem at cursor', section: 'General', where: 'editor' },
 	{ key: 'Ctrl+Q', label: 'Quit', section: 'General', where: 'all' },
 	{ key: 'Mouse', label: 'Click tabs, tree rows, editor', section: 'General', where: 'help' },
 

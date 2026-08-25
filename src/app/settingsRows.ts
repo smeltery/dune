@@ -146,6 +146,13 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'Scroll past end',
+			value: onOff(config.scrollPastEnd),
+			change: () =>
+				actions.patchConfig({ scrollPastEnd: !config.scrollPastEnd }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
 			label: 'Tab size',
 			value: `${config.tabSize}`,
 			change: (dir) => actions.applyTabSize(cycle(TAB_SIZES, config.tabSize, dir)),

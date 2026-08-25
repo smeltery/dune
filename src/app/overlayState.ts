@@ -1,5 +1,6 @@
 import { createMemo } from 'solid-js';
 import type { Accessor } from 'solid-js';
+import type { ProblemsScope } from './lsp/view';
 import type { Conflict, PickerState, Prompt, SearchState } from './types';
 
 export function isOverlayOpen(deps: {
@@ -15,7 +16,7 @@ export function isOverlayOpen(deps: {
 	diff: Accessor<unknown>;
 	update: Accessor<unknown>;
 	picker: Accessor<PickerState>;
-	problemsOpen: Accessor<boolean>;
+	problemsOpen: Accessor<ProblemsScope | false>;
 	commitFiles: Accessor<unknown>;
 }) {
 	return !!(

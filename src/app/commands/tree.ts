@@ -75,6 +75,7 @@ export function createAppCommandTree(deps: {
 	navigation: Navigation;
 	problemUi: {
 		list: () => void;
+		atCursor: () => void;
 		next: (direction: 1 | -1) => void;
 	};
 	lspRestart: () => boolean;
@@ -82,7 +83,9 @@ export function createAppCommandTree(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
 	reviewFetch: () => void;
+	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../../core/review').NoteKind) => void;
+	reviewReply: () => void;
 	reviewClear: () => void;
 	gitCommands: Parameters<typeof createAppCommands>[0]['gitCommands'];
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -149,6 +152,7 @@ export function createAppCommandTree(deps: {
 		reloadAppearancePlugins: deps.reloadAppearancePlugins,
 		appearanceVersion: deps.appearanceVersion,
 		problemsList: deps.problemUi.list,
+		problemsAtCursor: deps.problemUi.atCursor,
 		problemsNext: () => deps.problemUi.next(1),
 		problemsPrev: () => deps.problemUi.next(-1),
 		problemsRestart: () =>
@@ -156,7 +160,9 @@ export function createAppCommandTree(deps: {
 		lspStatus: deps.openLspStatus,
 		reviewOpen: deps.reviewOpen,
 		reviewFetch: deps.reviewFetch,
+		reviewNoteChooser: deps.reviewNoteChooser,
 		reviewNote: deps.reviewNote,
+		reviewReply: deps.reviewReply,
 		reviewClear: deps.reviewClear,
 		completion: {
 			show: deps.completion.show,
