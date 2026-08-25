@@ -71,7 +71,6 @@ export function createGitCommands(deps: {
 	diffBase: () => string | null;
 	/** The panel's own status, so the stacked page reuses the scan App already ran. */
 	statusEntries: () => Map<string, StatusEntry>;
-	showPanel: () => void;
 	upstream: () => Upstream | null;
 	setDiffBase: (base: string | null) => void;
 	setBusy: (busy: { label: string; done: number; total: number } | null) => void;
@@ -217,7 +216,7 @@ export function createGitCommands(deps: {
 	 */
 	const showChanges = () => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		deps.showPanel();
+		deps.showView('git');
 		if (panelChanges().length === 0) return deps.say('No changes', 'warn');
 		setChangesOpen(true);
 		rebuildChanges();

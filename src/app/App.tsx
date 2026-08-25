@@ -315,13 +315,6 @@ export function App(props: AppTypes.AppProps) {
 			say,
 		});
 	};
-	const showGitPanel = () => {
-		setSidebar(true);
-		setReviewPanel(false);
-		setPluginsPanel(false);
-		gitCommands.setPanel(true);
-		setFocus('tree');
-	};
 	const gitCommands = createGitCommands({
 		rootDir,
 		gitScanDepth: () => config.gitScanDepth,
@@ -329,7 +322,6 @@ export function App(props: AppTypes.AppProps) {
 		branch,
 		diffBase,
 		statusEntries: gitStatusEntries,
-		showPanel: () => showGitPanel(),
 		upstream,
 		setDiffBase,
 		setBusy,
