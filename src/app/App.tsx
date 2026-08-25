@@ -792,7 +792,14 @@ export function App(props: AppTypes.AppProps) {
 				onGitDiff={gitCommands.openDiff}
 				onGitDiscard={gitCommands.promptDiscard}
 				onGitToggleStage={(row) => gitCommands.toggleStage(gitStatusEntries(), row)}
-				onGitCommit={gitCommands.openCommitPicker}
+				onGitCommit={gitCommands.commitFromBox}
+				onGitFocusMessage={gitCommands.focusCommitBox}
+				commitMessage={gitCommands.commitMessage()}
+				messageEditing={gitCommands.messageEditing()}
+				hasMessageHistory={gitCommands.hasMessageHistory()}
+				onGitMessageInput={gitCommands.typeMessage}
+				onGitWalkHistory={gitCommands.walkMessageHistory}
+				onGitCancelMessage={() => gitCommands.setMessageEditing(false)}
 				onGitPush={gitCommands.push}
 				onGitSync={gitCommands.sync}
 				onGitBranchAction={gitCommands.openPanelBranchAction}

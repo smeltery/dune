@@ -41,6 +41,7 @@ export function createDocumentActions(deps: {
 	selectedPath: () => string | null;
 	gitCommands: {
 		submitCommit: (message: string) => void;
+		submitCommitAll: (message: string) => void;
 		submitBranch: (name: string, from?: string | null) => void;
 		rename: (from: string, to: string) => void;
 		remove: (name: string, force: boolean) => void;
@@ -597,6 +598,8 @@ export function createDocumentActions(deps: {
 				return deps.quit(true);
 			case 'undoCommit':
 				return deps.gitCommands.undoCommit();
+			case 'commitAll':
+				return deps.gitCommands.submitCommitAll(p.message);
 			case 'discardChanges':
 				return deps.gitCommands.discard(p.path, p.status);
 			case 'deleteTag':

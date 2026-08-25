@@ -150,6 +150,13 @@ interface AppViewProps {
 	onGitDiscard: (path: string, status: FileStatus) => void;
 	onGitToggleStage: (row: ChangeRow) => void;
 	onGitCommit: () => void;
+	onGitFocusMessage: () => void;
+	commitMessage: string;
+	messageEditing: boolean;
+	hasMessageHistory: boolean;
+	onGitMessageInput: (value: string) => void;
+	onGitWalkHistory: (delta: number) => void;
+	onGitCancelMessage: () => void;
 	onGitPush: () => void;
 	onGitSync: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -283,6 +290,13 @@ export function AppView(props: AppViewProps) {
 											onDiscard={props.onGitDiscard}
 											onToggleStage={props.onGitToggleStage}
 											onCommit={props.onGitCommit}
+											onFocusMessage={props.onGitFocusMessage}
+											commitMessage={props.commitMessage}
+											messageEditing={props.messageEditing}
+											hasMessageHistory={props.hasMessageHistory}
+											onMessageInput={props.onGitMessageInput}
+											onWalkHistory={props.onGitWalkHistory}
+											onCancelMessage={props.onGitCancelMessage}
 											onPush={props.onGitPush}
 											onSync={props.onGitSync}
 											onBranchAction={props.onGitBranchAction}
