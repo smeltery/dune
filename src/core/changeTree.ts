@@ -35,12 +35,35 @@ export interface SectionRow {
 	files: number;
 }
 
-export type ChangeRow = FileRow | DirRow | SectionRow;
+export type CommitGroup = 'incoming' | 'outgoing';
 
-export const foldKey = (area: ChangeArea, rel: string) => `${area}:${rel}`;
+export interface CommitSectionRow {
+	kind: 'commitSection';
+	depth: 0;
+	label: string;
+	group: CommitGroup;
+	collapsed: boolean;
+	count: number;
+}
 
-export const rowArea = (row: ChangeRow): ChangeArea =>
-	row.kind === 'file' ? row.change.area : row.area;
+export interface CommitRow {
+	kind: 'commit';
+	depth: number;
+	label: string;
+	oid: string;
+	group: CommitGroup;
+}
+
+export type ChangeRow = FileRow | DirRow | SectionRow | CommitSectionRow | CommitRow;
+
+export const foldKey = (area: ChangeArea | CommitGroup, rel: string) => `${area}:${rel}`;
+
+export const rowArea = (row: ChangeRow): ChangeArea | CommitGroup =>
+	row.kind === 'file'
+		? row.change.area
+		: row.kind === 'commit' || row.kind === 'commitSection'
+			? row.group
+			: row.area;
 
 export const rowRel = (row: ChangeRow): string =>
 	row.kind === 'file' ? row.change.rel : row.kind === 'dir' ? row.rel : '';
@@ -54,6 +77,11 @@ const SECTION_LABEL: Record<ChangeArea, string> = {
 	merge: 'Merge Changes',
 	staged: 'Staged Changes',
 	unstaged: 'Changes',
+};
+
+const COMMIT_SECTION_LABEL: Record<CommitGroup, string> = {
+	incoming: 'Incoming',
+	outgoing: 'Outgoing',
 };
 
 const AREAS: ChangeArea[] = ['merge', 'staged', 'unstaged'];
@@ -96,6 +124,42 @@ export function changeRows(
 		if (shut) continue;
 		for (const row of rowsFor(mine, mode, collapsed, area)) {
 			rows.push({ ...row, depth: row.depth + 1 });
+		}
+	}
+	return rows;
+}
+
+/** Sync sections under the change list — skipped when empty. */
+export function commitRows(
+	incoming: readonly { oid: string; subject: string }[],
+	outgoing: readonly { oid: string; subject: string }[],
+	collapsed: ReadonlySet<string> = new Set(),
+): ChangeRow[] {
+	const rows: ChangeRow[] = [];
+	const groups: [CommitGroup, readonly { oid: string; subject: string }[]][] = [
+		['incoming', incoming],
+		['outgoing', outgoing],
+	];
+	for (const [group, commits] of groups) {
+		if (commits.length === 0) continue;
+		const shut = collapsed.has(foldKey(group, ''));
+		rows.push({
+			kind: 'commitSection',
+			depth: 0,
+			label: COMMIT_SECTION_LABEL[group],
+			group,
+			collapsed: shut,
+			count: commits.length,
+		});
+		if (shut) continue;
+		for (const commit of commits) {
+			rows.push({
+				kind: 'commit',
+				depth: 1,
+				label: commit.subject,
+				oid: commit.oid,
+				group,
+			});
 		}
 	}
 	return rows;
@@ -153,7 +217,9 @@ function rowsFor(
 
 export function changesFor(changes: readonly Change[], row: ChangeRow): Change[] {
 	if (row.kind === 'file') return [row.change];
+	if (row.kind === 'commit' || row.kind === 'commitSection') return [];
 	const area = rowArea(row);
+	if (area === 'incoming' || area === 'outgoing') return [];
 	const mine = changes.filter((change) => change.area === area);
 	return row.kind === 'section' ? mine : mine.filter((c) => c.rel.startsWith(`${row.rel}/`));
 }

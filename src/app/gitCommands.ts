@@ -488,6 +488,17 @@ export function createGitCommands(deps: {
 			'Pushed',
 		);
 
+	const syncBranch = () => {
+		const name = deps.branch();
+		if (!name) return deps.say('No branch to sync', 'warn');
+		const hasUpstream = !!deps.upstream()?.name;
+		if (!hasUpstream) {
+			runGit('Publishing', () => gitPush(deps.rootDir, name, false), `Published ${name}`);
+			return;
+		}
+		runGit('Syncing', () => pullAndPush(deps.rootDir, name, true), 'Synced');
+	};
+
 	const toggleStage = (entries: Map<string, StatusEntry>, row: ChangeRow) => {
 		if (diffBase() !== null)
 			return deps.say('Staging compares against HEAD — reset the comparison base', 'warn');
@@ -625,6 +636,7 @@ export function createGitCommands(deps: {
 		openBranchFrom,
 		openBranchPrompt,
 		push: pushBranch,
+		sync: syncBranch,
 		openCommitPicker,
 		toggleStage,
 		toggleStageActiveFile,

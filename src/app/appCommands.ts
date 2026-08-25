@@ -131,6 +131,7 @@ export function createAppCommands(deps: {
 		fetch: () => void;
 		pull: () => void;
 		push: () => void;
+		sync: () => void;
 		toggleStage: (entries: Map<string, StatusEntry>, row: ChangeRow) => void;
 		toggleStageActiveFile: () => void;
 	};
@@ -354,6 +355,7 @@ export function createAppCommands(deps: {
 				fetch: deps.gitCommands.fetch,
 				pull: deps.gitCommands.pull,
 				push: deps.gitCommands.push,
+				sync: deps.gitCommands.sync,
 				showHelp: () => deps.setHelp(true),
 				quit: deps.quit,
 			},

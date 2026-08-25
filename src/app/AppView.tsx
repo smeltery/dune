@@ -148,6 +148,7 @@ interface AppViewProps {
 	onGitToggleStage: (row: ChangeRow) => void;
 	onGitCommit: () => void;
 	onGitPush: () => void;
+	onGitSync: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 	onOpenReview: () => void;
 	onCloseReview: () => void;
@@ -280,6 +281,7 @@ export function AppView(props: AppViewProps) {
 											onToggleStage={props.onGitToggleStage}
 											onCommit={props.onGitCommit}
 											onPush={props.onGitPush}
+											onSync={props.onGitSync}
 											onBranchAction={props.onGitBranchAction}
 											reviewCount={props.review.count()}
 											onReview={props.onOpenReview}
