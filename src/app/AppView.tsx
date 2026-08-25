@@ -33,6 +33,7 @@ import { KeyPeek } from '../ui/KeyPeek';
 import { LspStatusView } from '../ui/overlays/LspStatusView';
 import { MarkdownView } from '../ui/MarkdownView';
 import { GitPanel } from '../ui/overlays/GitPanel';
+import { PluginsPanel } from '../ui/overlays/PluginsPanel';
 import { ReviewPanel } from '../ui/ReviewPanel';
 import { SettingsView } from '../ui/overlays/SettingsView';
 import type { SettingRow } from '../ui/overlays/SettingsView';
@@ -111,7 +112,9 @@ interface AppViewProps {
 	picker: 'files' | 'tabs' | null;
 	gitPanel: boolean;
 	reviewPanel: boolean;
+	pluginsPanel: boolean;
 	review: Review;
+	plugins: import('./appearance/pluginsPanel').PluginsPanel;
 	palette: boolean;
 	settingsPage: boolean;
 	settingsScope: 'user' | 'project';
@@ -148,6 +151,7 @@ interface AppViewProps {
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
 	onOpenReview: () => void;
 	onCloseReview: () => void;
+	onClosePlugins: () => void;
 	onResizeStart: (event: MouseEvent) => void;
 	onEditorChange: (text: string) => void;
 	onCursor: (pos: { line: number; col: number }) => void;
@@ -234,7 +238,7 @@ export function AppView(props: AppViewProps) {
 			>
 				<Show when={props.sidebar}>
 					<Show
-						when={props.gitPanel || props.reviewPanel}
+						when={props.gitPanel || props.reviewPanel || props.pluginsPanel}
 						fallback={
 							<FileTree
 								rootName={basename(props.rootDir) || props.rootDir}
@@ -256,52 +260,76 @@ export function AppView(props: AppViewProps) {
 						}
 					>
 						<Show
-							when={props.reviewPanel}
+							when={props.pluginsPanel}
 							fallback={
-								<GitPanel
-									rootDir={props.rootDir}
-									branch={props.branch}
-									base={props.diffBase}
-									upstream={props.upstream}
-									view={props.config.gitPanelView}
-									width={props.treeWidth}
-									focused={props.focus !== 'editor' && !props.blocked}
-									statusEntries={props.gitStatusEntries}
-									onFocus={() => props.onTreeFocus()}
-									onDiff={props.onGitDiff}
-									onDiscard={props.onGitDiscard}
-									onToggleStage={props.onGitToggleStage}
-									onCommit={props.onGitCommit}
-									onPush={props.onGitPush}
-									onBranchAction={props.onGitBranchAction}
-									reviewCount={props.review.count()}
-									onReview={props.onOpenReview}
-								/>
+								<Show
+									when={props.reviewPanel}
+									fallback={
+										<GitPanel
+											rootDir={props.rootDir}
+											branch={props.branch}
+											base={props.diffBase}
+											upstream={props.upstream}
+											view={props.config.gitPanelView}
+											width={props.treeWidth}
+											focused={props.focus !== 'editor' && !props.blocked}
+											statusEntries={props.gitStatusEntries}
+											onFocus={() => props.onTreeFocus()}
+											onDiff={props.onGitDiff}
+											onDiscard={props.onGitDiscard}
+											onToggleStage={props.onGitToggleStage}
+											onCommit={props.onGitCommit}
+											onPush={props.onGitPush}
+											onBranchAction={props.onGitBranchAction}
+											reviewCount={props.review.count()}
+											onReview={props.onOpenReview}
+										/>
+									}
+								>
+									<ReviewPanel
+										rows={props.review.rows()}
+										cursor={props.review.cursor()}
+										count={props.review.count()}
+										pull={
+											props.review.pull()
+												? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
+												: null
+										}
+										fetching={props.review.fetching()}
+										focused={props.focus === 'tree' && !props.blocked}
+										width={props.treeWidth}
+										onFocus={() => props.onTreeFocus()}
+										onActivate={(index) => props.review.activate(index)}
+										onCollapseAll={props.review.collapseAll}
+										onMove={(delta) => {
+											props.review.move(delta);
+											props.review.show();
+										}}
+										onFetch={props.review.fetchPullRequest}
+										onRemove={props.review.remove}
+										onReply={props.review.promptReply}
+										onClose={props.onCloseReview}
+									/>
+								</Show>
 							}
 						>
-							<ReviewPanel
-								rows={props.review.rows()}
-								cursor={props.review.cursor()}
-								count={props.review.count()}
-								pull={
-									props.review.pull()
-										? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
-										: null
-								}
-								fetching={props.review.fetching()}
+							<PluginsPanel
+								rows={props.plugins.rows()}
+								cursor={props.plugins.cursor()}
+								installedCount={props.plugins.installedCount()}
+								query={props.plugins.query()}
 								focused={props.focus === 'tree' && !props.blocked}
 								width={props.treeWidth}
 								onFocus={() => props.onTreeFocus()}
-								onActivate={(index) => props.review.activate(index)}
-								onCollapseAll={props.review.collapseAll}
-								onMove={(delta) => {
-									props.review.move(delta);
-									props.review.show();
-								}}
-								onFetch={props.review.fetchPullRequest}
-								onRemove={props.review.remove}
-								onReply={props.review.promptReply}
-								onClose={props.onCloseReview}
+								onActivate={(index) => props.plugins.activate(index)}
+								onMove={(delta) => props.plugins.move(delta)}
+								onRemove={props.plugins.remove}
+								onCheck={props.plugins.checkNow}
+								onUpdateAll={props.plugins.updateAll}
+								onOpenSearch={props.plugins.openSearch}
+								onCloseSearch={props.plugins.closeSearch}
+								onSearch={props.plugins.search}
+								onClose={props.onClosePlugins}
 							/>
 						</Show>
 					</Show>

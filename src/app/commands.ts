@@ -105,6 +105,7 @@ export interface CommandActions {
 	lspStatus: () => void;
 	completion: () => void;
 	reviewOpen: () => void;
+	pluginsOpen: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
@@ -313,6 +314,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'themes.appearancePlugins',
 					label: 'Plugin manager',
 					run: actions.openAppearancePlugins,
+				},
+				{
+					id: 'view.extensions',
+					label: 'Plugins panel',
+					hint: `Ctrl+${ALT}+X`,
+					run: actions.pluginsOpen,
 				},
 				{
 					id: 'themes.listAppearancePlugins',

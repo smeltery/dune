@@ -1,10 +1,10 @@
 {
 	"default_lines": 500,
 	"files": {
-		"src/app/App.tsx": 830,
-		"src/app/AppView.tsx": 590,
+		"src/app/App.tsx": 870,
+		"src/app/AppView.tsx": 620,
 		"src/app/review.ts": 540,
-		"src/app/commands.ts": 655,
+		"src/app/commands.ts": 660,
 		"src/app/documentActions.ts": 655,
 		"src/app/gitCommands.ts": 640,
 		"src/core/forge.ts": 515,

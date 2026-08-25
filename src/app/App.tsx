@@ -18,6 +18,7 @@ import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
 import { createAppearancePluginUi } from './appearance/pluginsPage';
+import { createPluginsPanel } from './appearance/pluginsPanel';
 import { reloadAppearancePlugins as reloadPlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
@@ -93,6 +94,7 @@ export function App(props: AppTypes.AppProps) {
 	const [diffBase, setDiffBase] = createSignal<string | null>(null);
 	const [upstream, setUpstream] = createSignal<Upstream | null>(null);
 	const [reviewPanel, setReviewPanel] = createSignal(false);
+	const [pluginsPanel, setPluginsPanel] = createSignal(false);
 	const [resizing, setResizing] = createSignal(false);
 	const [history, setHistory] = createSignal<AppTypes.HistoryRequest>(null);
 	const [goto, setGoto] = createSignal<AppTypes.GotoRequest>(null);
@@ -131,6 +133,14 @@ export function App(props: AppTypes.AppProps) {
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		editRegistry: () =>
 			setPrompt({ kind: 'appearancePluginRegistry', current: config.pluginRegistry }),
+		reload: reloadUi,
+		say,
+	});
+	const plugins = createPluginsPanel({
+		rootDir,
+		config,
+		appearance: appearancePlugins,
+		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		reload: reloadUi,
 		say,
 	});
@@ -349,10 +359,28 @@ export function App(props: AppTypes.AppProps) {
 	const toggleReviewPanel = () => {
 		setSidebar(true);
 		gitCommands.setPanel(false);
+		setPluginsPanel(false);
 		setReviewPanel((was) => {
 			if (!was) review.autoFetch();
 			return !was;
 		});
+		setFocus('tree');
+	};
+	const togglePluginsPanel = () => {
+		setSidebar(true);
+		gitCommands.setPanel(false);
+		setReviewPanel(false);
+		setPluginsPanel((was) => {
+			if (!was) plugins.ensureCatalog();
+			return !was;
+		});
+		setFocus('tree');
+	};
+	const toggleGitPanel = () => {
+		setSidebar(true);
+		setReviewPanel(false);
+		setPluginsPanel(false);
+		gitCommands.togglePanel();
 		setFocus('tree');
 	};
 	const chooseReviewKind = (kind: string) => {
@@ -495,6 +523,7 @@ export function App(props: AppTypes.AppProps) {
 		lspRestart: lsp.restart,
 		openLspStatus: () => setLspStatusOpen(true),
 		reviewOpen: toggleReviewPanel,
+		pluginsOpen: togglePluginsPanel,
 		reviewFetch: review.fetchPullRequest,
 		reviewNoteChooser: openReviewKindChooser,
 		reviewNote: openReviewNote,
@@ -507,7 +536,7 @@ export function App(props: AppTypes.AppProps) {
 		acceptMergeConflict: mergeConflicts.accept,
 		nextMergeConflict: mergeConflicts.next,
 		patchConfig,
-		gitCommands,
+		gitCommands: { ...gitCommands, sourceControl: toggleGitPanel, togglePanel: toggleGitPanel },
 		setHelp,
 		say,
 		quit,
@@ -560,7 +589,7 @@ export function App(props: AppTypes.AppProps) {
 		config,
 		activePath,
 		clipboard,
-		focus: () => (gitCommands.panel() || reviewPanel() ? 'gitPanel' : focus()),
+		focus: () => (gitCommands.panel() || reviewPanel() || pluginsPanel() ? 'gitPanel' : focus()),
 		help,
 		marked,
 		notice,
@@ -604,8 +633,9 @@ export function App(props: AppTypes.AppProps) {
 		targetDir,
 		toggleExpand,
 		toggleSidebar,
-		toggleGitPanel: gitCommands.togglePanel,
+		toggleGitPanel,
 		toggleReviewPanel,
+		togglePluginsPanel,
 		toggleMarkdown,
 		reviewNoteChooser: openReviewKindChooser,
 		reviewReply: openReviewReply,
@@ -713,7 +743,9 @@ export function App(props: AppTypes.AppProps) {
 				picker={picker()}
 				gitPanel={gitCommands.panel()}
 				reviewPanel={reviewPanel()}
+				pluginsPanel={pluginsPanel()}
 				review={review}
+				plugins={plugins}
 				palette={palette()}
 				settingsPage={settingsPage() !== null}
 				settingsScope={settingsPage() ?? 'user'}
@@ -750,10 +782,12 @@ export function App(props: AppTypes.AppProps) {
 				onGitBranchAction={gitCommands.openPanelBranchAction}
 				onOpenReview={() => {
 					gitCommands.setPanel(false);
+					setPluginsPanel(false);
 					setReviewPanel(true);
 					review.autoFetch();
 				}}
 				onCloseReview={() => setReviewPanel(false)}
+				onClosePlugins={() => setPluginsPanel(false)}
 				onResizeStart={(event) => {
 					setResizing(true);
 					resizeSidebar(event.x);

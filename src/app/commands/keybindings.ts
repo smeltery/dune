@@ -21,6 +21,7 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'view.markdown', label: 'Markdown: rendered / source' },
 	{ id: 'view.wrap', label: 'Toggle word wrap' },
 	{ id: 'git.sourceControl', label: 'Source control panel' },
+	{ id: 'view.extensions', label: 'Plugins panel' },
 	{ id: 'problems.list', label: 'List problems' },
 	{ id: 'problems.next', label: 'Next problem' },
 	{ id: 'problems.prev', label: 'Previous problem' },

@@ -84,6 +84,7 @@ export function createAppCommandTree(deps: {
 	openLspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
+	pluginsOpen: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../../core/review').NoteKind) => void;
@@ -161,6 +162,7 @@ export function createAppCommandTree(deps: {
 			deps.say(deps.lspRestart() ? 'Restarted language servers' : 'No language servers running'),
 		lspStatus: deps.openLspStatus,
 		reviewOpen: deps.reviewOpen,
+		pluginsOpen: deps.pluginsOpen,
 		reviewFetch: deps.reviewFetch,
 		reviewNoteChooser: deps.reviewNoteChooser,
 		reviewNote: deps.reviewNote,
