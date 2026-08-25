@@ -1,6 +1,8 @@
 import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
+import type { ChangeRow } from '../core/changeTree';
+import { changesFor, changesFromEntries, rowArea } from '../core/changeTree';
 import {
 	addRemote,
 	amendCommit,
@@ -28,14 +30,17 @@ import {
 	removeRemote,
 	renameBranch,
 	stagedPaths,
+	stagePaths,
 	stashApply,
 	stashDrop,
 	listStashes,
 	stashPop,
 	stashPush,
 	switchBranch,
+	statusEntries,
 	statusMap,
 	undoLastCommit,
+	unstagePaths,
 } from '../core/git';
 import { unifiedDiff } from '../core/diff';
 import {
@@ -46,7 +51,7 @@ import {
 	commitsForFile,
 	commitSummary,
 } from '../core/gitDiff';
-import type { FileStatus, GitResult, Upstream } from '../core/git';
+import type { FileStatus, GitResult, StatusEntry, Upstream } from '../core/git';
 import type { DiffFile } from '../core/gitDiff';
 import type { CommitFile } from '../ui/CommitModal';
 import type { Tone } from '../ui/StatusBar';
@@ -55,6 +60,7 @@ import type { Prompt } from './types';
 export function createGitCommands(deps: {
 	rootDir: string;
 	gitScanDepth: () => number;
+	activePath: () => string | null;
 	branch: () => string | null;
 	diffBase: () => string | null;
 	upstream: () => Upstream | null;
@@ -482,6 +488,38 @@ export function createGitCommands(deps: {
 			'Pushed',
 		);
 
+	const toggleStage = (entries: Map<string, StatusEntry>, row: ChangeRow) => {
+		if (diffBase() !== null)
+			return deps.say('Staging compares against HEAD — reset the comparison base', 'warn');
+		const changes = changesFromEntries(deps.rootDir, entries);
+		const targets = changesFor(changes, row);
+		if (targets.length === 0) return deps.say('Nothing to stage', 'warn');
+		const area = rowArea(row);
+		const paths = [...new Set(targets.map((change) => change.path))];
+		const what = paths.length === 1 ? relative(deps.rootDir, paths[0]!) : `${paths.length} files`;
+		if (area === 'staged') {
+			runGit('Unstaging', () => unstagePaths(deps.rootDir, paths), `Unstaged ${what}`);
+		} else {
+			runGit('Staging', () => stagePaths(deps.rootDir, paths), `Staged ${what}`);
+		}
+	};
+
+	const toggleStageActiveFile = () => {
+		if (diffBase() !== null)
+			return deps.say('Staging compares against HEAD — reset the comparison base', 'warn');
+		const path = deps.activePath();
+		if (!path) return deps.say('No file open', 'warn');
+		const entry = statusEntries(deps.rootDir, null, deps.gitScanDepth()).get(path);
+		if (!entry || (!entry.staged && !entry.unstaged))
+			return deps.say('No changes to stage', 'warn');
+		const what = relative(deps.rootDir, path);
+		if (entry.staged && !entry.unstaged) {
+			runGit('Unstaging', () => unstagePaths(deps.rootDir, [path]), `Unstaged ${what}`);
+		} else {
+			runGit('Staging', () => stagePaths(deps.rootDir, [path]), `Staged ${what}`);
+		}
+	};
+
 	return {
 		commitFiles,
 		commitMessageHistory,
@@ -588,5 +626,7 @@ export function createGitCommands(deps: {
 		openBranchPrompt,
 		push: pushBranch,
 		openCommitPicker,
+		toggleStage,
+		toggleStageActiveFile,
 	};
 }

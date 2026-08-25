@@ -377,6 +377,7 @@ test('source control panel lists changes from Ctrl+Opt+G', async () => {
 	await press(t, (input) => void input.typeText('B'));
 	expect(t.captureCharFrame()).toContain('Compare against branch');
 	await pressEscape(t);
+	await press(t, (input) => input.pressArrow('down'));
 	await press(t, (input) => input.pressEnter());
 	expect(t.captureCharFrame()).toContain('+ changed');
 	await pressEscape(t);

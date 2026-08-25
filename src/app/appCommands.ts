@@ -1,10 +1,11 @@
 import { createMemo, createSignal } from 'solid-js';
 
+import type { ChangeRow } from '../core/changeTree';
 import type { Config } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import type { ConflictSide } from '../core/git/conflicts';
-import type { FileStatus } from '../core/git';
+import type { FileStatus, StatusEntry } from '../core/git';
 import {
 	fetchCatalog,
 	fetchPlugin,
@@ -125,6 +126,8 @@ export function createAppCommands(deps: {
 		fetch: () => void;
 		pull: () => void;
 		push: () => void;
+		toggleStage: (entries: Map<string, StatusEntry>, row: ChangeRow) => void;
+		toggleStageActiveFile: () => void;
 	};
 	setHelp: (show: boolean) => void;
 	quit: () => void;
@@ -307,6 +310,7 @@ export function createAppCommands(deps: {
 				commitSync: () => deps.gitCommands.openCommitPicker('sync'),
 				commitAmend: deps.gitCommands.promptAmend,
 				sourceControl: deps.gitCommands.togglePanel,
+				gitStage: deps.gitCommands.toggleStageActiveFile,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
 				discardCurrent: () => {
 					const path = deps.activePath();

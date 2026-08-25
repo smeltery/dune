@@ -1,15 +1,21 @@
-import { relative } from 'node:path';
-
 import type { KeyEvent } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import type { ChangeRow } from '../../core/changeTree';
-import { ancestorDirs, changeRows } from '../../core/changeTree';
-import type { FileStatus } from '../../core/git';
+import {
+	ancestorDirs,
+	changeRows,
+	changesFromEntries,
+	foldKey,
+	rowArea,
+} from '../../core/changeTree';
+import type { FileStatus, StatusEntry } from '../../core/git';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
+
+const stageGlyph = (row: ChangeRow) => (rowArea(row) === 'staged' ? '−' : '+');
 
 export function GitPanel(props: {
 	rootDir: string;
@@ -19,10 +25,11 @@ export function GitPanel(props: {
 	view: 'tree' | 'list';
 	width: number;
 	focused: boolean;
-	status: Map<string, FileStatus>;
+	statusEntries: Map<string, StatusEntry>;
 	onFocus: () => void;
 	onDiff: (path: string) => void;
 	onDiscard: (path: string, status: FileStatus) => void;
+	onToggleStage: (row: ChangeRow) => void;
 	onCommit: () => void;
 	onPush: () => void;
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -33,16 +40,14 @@ export function GitPanel(props: {
 	const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 	const [filtering, setFiltering] = createSignal(false);
 	const [filter, setFilter] = createSignal('');
-	const changes = createMemo(() =>
-		[...props.status]
-			.map(([path, status]) => ({ path, status, rel: relative(props.rootDir, path) }))
-			.filter((change) => {
-				const query = filter().trim();
-				return query.length === 0 || fuzzyScore(change.rel, query) !== null;
-			})
-			.toSorted((a, b) => a.rel.localeCompare(b.rel)),
-	);
-	const rows = createMemo(() => changeRows(changes(), props.view, collapsed()));
+	const staging = () => props.base === null;
+	const changes = createMemo(() => {
+		const all = changesFromEntries(props.rootDir, props.statusEntries);
+		const query = filter().trim();
+		if (query.length === 0) return all;
+		return all.filter((change) => fuzzyScore(change.rel, query) !== null);
+	});
+	const rows = createMemo(() => changeRows(changes(), props.view, collapsed(), staging()));
 	const selected = () => Math.min(index(), Math.max(0, rows().length - 1));
 	const headline = () => {
 		const parts = [props.branch ?? 'git'];
@@ -51,17 +56,29 @@ export function GitPanel(props: {
 		if (upstream?.behind) parts.push(`↓${upstream.behind}`);
 		return parts.join(' ');
 	};
-	const toggleDir = (rel: string) =>
+	const toggleDir = (row: Extract<ChangeRow, { kind: 'dir' }>) =>
 		setCollapsed((prev) => {
+			const key = foldKey(row.area, row.rel);
 			const next = new Set(prev);
-			if (next.has(rel)) next.delete(rel);
-			else next.add(rel);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
+			return next;
+		});
+	const toggleSection = (row: Extract<ChangeRow, { kind: 'section' }>) =>
+		setCollapsed((prev) => {
+			const key = foldKey(row.area, '');
+			const next = new Set(prev);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
 			return next;
 		});
 	const canCollapseAll = () =>
 		props.view === 'tree' && rows().some((row) => row.kind === 'dir' && !row.collapsed);
 	const collapseAll = () => {
-		setCollapsed(new Set(changes().flatMap((change) => ancestorDirs(change.rel))));
+		const keys = changes().flatMap((change) =>
+			ancestorDirs(change.rel).map((dir) => foldKey(change.area, dir)),
+		);
+		setCollapsed(new Set(keys));
 		setIndex(0);
 	};
 	const setFilterValue = (value: string) => {
@@ -70,7 +87,8 @@ export function GitPanel(props: {
 	};
 	const activate = (row: ChangeRow | undefined) => {
 		if (!row) return;
-		if (row.kind === 'dir') toggleDir(row.rel);
+		if (row.kind === 'section') toggleSection(row);
+		else if (row.kind === 'dir') toggleDir(row);
 		else props.onDiff(row.change.path);
 	};
 
@@ -99,10 +117,15 @@ export function GitPanel(props: {
 			activate(row());
 		} else if (key.name === 'left') {
 			const current = row();
-			if (current?.kind === 'dir' && !current.collapsed) toggleDir(current.rel);
+			if (current?.kind === 'dir' && !current.collapsed) toggleDir(current);
+			else if (current?.kind === 'section' && !current.collapsed) toggleSection(current);
 		} else if (key.name === 'right') {
 			const current = row();
-			if (current?.kind === 'dir' && current.collapsed) toggleDir(current.rel);
+			if (current?.kind === 'dir' && current.collapsed) toggleDir(current);
+			else if (current?.kind === 'section' && current.collapsed) toggleSection(current);
+		} else if (plain && key.name === ' ' && staging()) {
+			const current = row();
+			if (current) props.onToggleStage(current);
 		} else if (plain && key.name === 'c') {
 			if (props.base) props.onBranchAction('commits');
 			else props.onCommit();
@@ -119,6 +142,14 @@ export function GitPanel(props: {
 		} else return;
 		key.preventDefault();
 	});
+
+	const footerHints = () => {
+		const fold = props.view === 'tree' ? ' · ←→ fold' : '';
+		if (props.base)
+			return `b branch · B compare · c commits · / filter · p push · enter diff${fold}`;
+		const stage = staging() ? 'space stage · ' : '';
+		return `b branch · B compare · c commit · d discard · ${stage}p push · enter diff${fold}`;
+	};
 
 	return (
 		<box
@@ -176,9 +207,9 @@ export function GitPanel(props: {
 										flexShrink={0}
 										content={` ${'  '.repeat(row.depth)}`}
 									/>
-									<Show when={row.kind === 'dir'}>
+									<Show when={row.kind === 'dir' || row.kind === 'section'}>
 										{() =>
-											row.kind === 'dir' && (
+											(row.kind === 'dir' || row.kind === 'section') && (
 												<text
 													fg={ui.dim}
 													bg={bg()}
@@ -190,19 +221,54 @@ export function GitPanel(props: {
 									</Show>
 									<box flexGrow={1} backgroundColor={bg()}>
 										<text
-											fg={row.kind === 'dir' ? ui.folder : active() ? ui.text : ui.dim}
+											fg={
+												row.kind === 'section'
+													? ui.text
+													: row.kind === 'dir'
+														? ui.folder
+														: active()
+															? ui.text
+															: ui.dim
+											}
 											bg={bg()}
-											content={row.kind === 'dir' ? row.label : ` ${row.label}`}
+											content={
+												row.kind === 'dir' || row.kind === 'section' ? row.label : ` ${row.label}`
+											}
 										/>
 									</box>
-									<Show when={row.kind === 'dir'}>
+									<Show when={row.kind === 'dir' || row.kind === 'section'}>
 										{() =>
-											row.kind === 'dir' && (
+											(row.kind === 'dir' || row.kind === 'section') && (
 												<text
 													fg={ui.faint}
 													bg={bg()}
 													flexShrink={0}
-													content={row.collapsed ? `${row.files} ` : ' '}
+													content={
+														row.collapsed
+															? `${row.kind === 'section' ? row.files : row.files} `
+															: ' '
+													}
+												/>
+											)
+										}
+									</Show>
+									<Show
+										when={
+											staging() &&
+											(row.kind === 'file' || row.kind === 'dir' || row.kind === 'section')
+										}
+									>
+										{() =>
+											(row.kind === 'file' || row.kind === 'dir' || row.kind === 'section') && (
+												<text
+													fg={ui.accent}
+													bg={bg()}
+													flexShrink={0}
+													content={`${stageGlyph(row)} `}
+													onMouseDown={(event) => {
+														event.stopPropagation();
+														props.onToggleStage(row);
+													}}
 												/>
 											)
 										}
@@ -226,11 +292,7 @@ export function GitPanel(props: {
 				</box>
 			</Show>
 			<box height={1} backgroundColor={ui.panelBg} paddingLeft={1}>
-				<text
-					fg={ui.faint}
-					bg={ui.panelBg}
-					content={`b branch · B compare · c ${props.base ? 'commits' : 'commit'} · ${props.base ? '/ filter · ' : 'd discard · '}p push · enter diff${props.view === 'tree' ? ' · ←→ fold' : ''}`}
-				/>
+				<text fg={ui.faint} bg={ui.panelBg} content={footerHints()} />
 			</box>
 		</box>
 	);

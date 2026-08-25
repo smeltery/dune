@@ -3,7 +3,13 @@ import { createMemo, createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
-import { currentBranch, type FileStatus, type LineChange, type Upstream } from '../core/git';
+import {
+	currentBranch,
+	type FileStatus,
+	type LineChange,
+	type StatusEntry,
+	type Upstream,
+} from '../core/git';
 import { parseReviewKind, reviewLineTarget, reviewNotePrompt } from './reviewPrompts';
 import { discoverRepos, repoOf } from '../core/vcs/repos';
 import { invalidateSyntaxStyle } from '../languages/highlight';
@@ -81,6 +87,7 @@ export function App(props: AppTypes.AppProps) {
 	const [gitLines, setGitLines] = createSignal<Map<number, LineChange>>(new Map());
 	const [gitRevision, setGitRevision] = createSignal(0);
 	const [gitStatus, setGitStatus] = createSignal<Map<string, FileStatus>>(new Map());
+	const [gitStatusEntries, setGitStatusEntries] = createSignal<Map<string, StatusEntry>>(new Map());
 	const [gitIgnored, setGitIgnored] = createSignal<Set<string>>(new Set());
 	const [branch, setBranch] = createSignal(currentBranch(rootDir));
 	const [diffBase, setDiffBase] = createSignal<string | null>(null);
@@ -291,6 +298,7 @@ export function App(props: AppTypes.AppProps) {
 	const gitCommands = createGitCommands({
 		rootDir,
 		gitScanDepth: () => config.gitScanDepth,
+		activePath,
 		branch,
 		diffBase,
 		upstream,
@@ -537,6 +545,7 @@ export function App(props: AppTypes.AppProps) {
 		setGitRevision,
 		setGitLines,
 		setGitStatus,
+		setGitStatusEntries,
 		setGitIgnored,
 		setBranch,
 		setUpstream,
@@ -657,6 +666,7 @@ export function App(props: AppTypes.AppProps) {
 				focus={focus()}
 				treeWidth={treeWidth()}
 				gitStatus={gitStatus()}
+				gitStatusEntries={gitStatusEntries()}
 				gitIgnored={gitIgnored()}
 				cutPaths={cut()}
 				markedPaths={marked()}
@@ -729,6 +739,7 @@ export function App(props: AppTypes.AppProps) {
 				onTreeFocus={() => setFocus('tree')}
 				onGitDiff={gitCommands.openDiff}
 				onGitDiscard={gitCommands.promptDiscard}
+				onGitToggleStage={(row) => gitCommands.toggleStage(gitStatusEntries(), row)}
 				onGitCommit={gitCommands.openCommitPicker}
 				onGitPush={gitCommands.push}
 				onGitBranchAction={gitCommands.openPanelBranchAction}
