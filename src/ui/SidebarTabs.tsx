@@ -18,31 +18,36 @@ export interface SidebarTabsProps {
 	onSelect: (view: SidebarView) => void;
 }
 
-const TABS: { id: SidebarView; label: string; short: string; command?: string; fallback?: string }[] =
-	[
-		{ id: 'files', label: 'Files', short: 'F' },
-		{
-			id: 'git',
-			label: 'Git',
-			short: 'G',
-			command: 'git.sourceControl',
-			fallback: `Ctrl+${ALT}+G`,
-		},
-		{
-			id: 'review',
-			label: 'Review',
-			short: 'R',
-			command: 'view.review',
-			fallback: `Ctrl+${ALT}+R`,
-		},
-		{
-			id: 'plugins',
-			label: 'Plugins',
-			short: 'P',
-			command: 'view.extensions',
-			fallback: `Ctrl+${ALT}+X`,
-		},
-	];
+const TABS: {
+	id: SidebarView;
+	label: string;
+	short: string;
+	command?: string;
+	fallback?: string;
+}[] = [
+	{ id: 'files', label: 'Files', short: 'F' },
+	{
+		id: 'git',
+		label: 'Git',
+		short: 'G',
+		command: 'git.sourceControl',
+		fallback: `Ctrl+${ALT}+G`,
+	},
+	{
+		id: 'review',
+		label: 'Review',
+		short: 'R',
+		command: 'view.review',
+		fallback: `Ctrl+${ALT}+R`,
+	},
+	{
+		id: 'plugins',
+		label: 'Plugins',
+		short: 'P',
+		command: 'view.extensions',
+		fallback: `Ctrl+${ALT}+X`,
+	},
+];
 
 /**
  * A button costs its label, a column of gutter, and — unless the strip has run
@@ -72,9 +77,7 @@ export function SidebarTabs(props: SidebarTabsProps) {
 	const padded = () => long() || stripWidth(INITIALS, 1) <= props.width;
 	const pad = () => (padded() ? 1 : 0);
 	const chordOf = (tab: (typeof TABS)[number]) =>
-		tab.command
-			? effectiveShortcut(props.keybindings, tab.command, tab.fallback ?? '')
-			: '';
+		tab.command ? effectiveShortcut(props.keybindings, tab.command, tab.fallback ?? '') : '';
 	return (
 		<box height={1} flexDirection="row" flexShrink={0} backgroundColor={ui.barBg}>
 			{/* `ui.bg`, not the row's own `barBg`: some themes give the tree's unfocused
