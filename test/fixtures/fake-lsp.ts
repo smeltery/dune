@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const send = (message: object) => process.stdout.write(encodeMessage(message));
+// Chatter on stderr, the way real servers do — the status page's log shows it.
+process.stderr.write('fake-lsp standing by\n');
 const initDump = process.argv[2];
 const capabilitiesDump = process.argv[3];
 const mode = process.argv[4];

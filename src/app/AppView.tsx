@@ -49,7 +49,7 @@ import { ViewerPane } from '../ui/viewers/ViewerPane';
 import type { SearchOptions } from '../core/search';
 import type { UpdateInfo } from '../core/update';
 import type { Command } from './commands';
-import type { LspStatusRow } from './lsp';
+import type { LspStatusRow } from '../lsp/status';
 import type { Review } from './review';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
@@ -181,6 +181,8 @@ interface AppViewProps {
 	onCloseProblems: () => void;
 	onChooseReviewKind: (kind: string) => void;
 	onCloseLspStatus: () => void;
+	onRestartLspStatus: () => void;
+	onUninstallLspStatus: (id: string) => void;
 	onCloseDiff: () => void;
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
@@ -543,7 +545,12 @@ export function AppView(props: AppViewProps) {
 				)}
 			</Show>
 			<Show when={props.lspStatusOpen}>
-				<LspStatusView rows={props.lspStatusRows} onClose={props.onCloseLspStatus} />
+				<LspStatusView
+					rows={props.lspStatusRows}
+					onRestart={props.onRestartLspStatus}
+					onUninstall={props.onUninstallLspStatus}
+					onClose={props.onCloseLspStatus}
+				/>
 			</Show>
 			<Show when={props.previewTarget}>
 				{(target: () => { path: string; isDir: boolean }) => (

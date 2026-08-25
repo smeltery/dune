@@ -16,6 +16,7 @@ import {
 	availablePackageManagers,
 	installedCommand,
 	installServer,
+	removeServer,
 	SERVER_ROOT,
 } from '../../lsp/install';
 import { projectCommand } from '../../lsp/project';
@@ -28,7 +29,10 @@ import {
 	type ResolvedServer,
 	type ServerSpec,
 } from '../../lsp/servers';
+import type { LspStatusRow, ServerLogLine, ServerState } from '../../lsp/status';
 import type { BufferState, Prompt, StatusMessage } from '../types';
+
+export type { LspStatusRow } from '../../lsp/status';
 
 export interface Problem {
 	path: string;
@@ -42,16 +46,26 @@ export interface Problem {
 	source?: string;
 }
 
-export interface LspStatusRow {
-	id: string;
-	filetypes: string[];
-	command: string;
-	state: 'ready' | 'starting' | 'stopped' | 'disabled';
-	problems: number;
-}
-
 const CHANGE_DEBOUNCE_MS = 150;
 const DEPENDENCY_QUIET_MS = 2_000;
+
+/**
+ * Lines a server's log keeps. Enough to hold a whole startup plus a while of
+ * chatter; the status page renders every line it has, so the cap is also what
+ * keeps a chatty server from growing the render without bound.
+ */
+const MAX_SERVER_LOG = 300;
+
+const timeStamp = () => new Date().toTimeString().slice(0, 8);
+
+/** Why a server that failed to spawn is missing — no `LSP: <name>` prefix, since the
+ * status row already names the server. */
+const failureReason = (resolved: ResolvedServer, reason: string, missing: boolean): string =>
+	missing
+		? resolved.install
+			? `not installed — ${installHint(resolved.install)}`
+			: 'is not installed, or not on PATH'
+		: reason;
 
 export function createAppLsp(deps: {
 	rootDir: string;
@@ -68,6 +82,22 @@ export function createAppLsp(deps: {
 	const clientIds = new WeakMap<LspClient, string>();
 	const offered = new Set<string>();
 	let refreshPulls: ((serverId: string) => void) | null = null;
+
+	/** What the status page's log panel shows, by server id. */
+	const [logs, setLogs] = createStore<Record<string, ServerLogLine[]>>({});
+	/**
+	 * Why a server is `failed`, by id — set alongside `clients.set(id, null)` in
+	 * `onFail`, and read back by `statusRows`. A plain map because it never
+	 * drives its own render; it is read only when a row is built.
+	 */
+	const lastError = new Map<string, string>();
+
+	const appendLog = (id: string, entry: Omit<ServerLogLine, 'time'>) => {
+		setLogs(id, (previous: ServerLogLine[] = []) => {
+			const next = [...previous, { time: timeStamp(), ...entry }];
+			return next.length > MAX_SERVER_LOG ? next.slice(next.length - MAX_SERVER_LOG) : next;
+		});
+	};
 
 	const mergeProblems = (path: string) => {
 		const sources = bySource.get(path);
@@ -115,12 +145,8 @@ export function createAppLsp(deps: {
 		return tsdk ? { tsserver: { path: tsdk } } : undefined;
 	};
 
-	const missingMessage = (resolved: ResolvedServer): string => {
-		const name = resolved.command[0]!;
-		return resolved.install
-			? `LSP: ${name} not installed — ${installHint(resolved.install)}`
-			: `LSP: ${name} is not installed, or not on PATH`;
-	};
+	const missingMessage = (resolved: ResolvedServer): string =>
+		`LSP: ${resolved.command[0]} ${failureReason(resolved, '', true)}`;
 
 	const offerInstall = (resolved: ResolvedServer): boolean => {
 		if (
@@ -151,6 +177,9 @@ export function createAppLsp(deps: {
 		const project = projectCommand(resolved.id, resolved.command, deps.rootDir);
 		const fetched = project ? null : installedCommand(resolved.command);
 		const command = project ?? fetched ?? resolved.command;
+		// The previous run's failure is stale the moment a fresh spawn starts —
+		// `onFail` sets it again if this attempt fails too.
+		lastError.delete(resolved.id);
 		const client = spawnLspClient({
 			command,
 			rootDir: deps.rootDir,
@@ -158,8 +187,10 @@ export function createAppLsp(deps: {
 			settings: resolved.settings,
 			onDiagnostics: onDiagnosticsFrom(resolved.id),
 			onRefreshDiagnostics: () => refreshPulls?.(resolved.id),
+			onLog: (entry) => appendLog(resolved.id, entry),
 			onFail: (reason, missing) => {
 				clients.set(resolved.id, null);
+				lastError.set(resolved.id, failureReason(resolved, reason, missing));
 				if (missing && offerInstall(resolved)) return;
 				deps.say(missing ? missingMessage(resolved) : `LSP: ${command[0]} ${reason}`, 'warn');
 			},
@@ -231,21 +262,60 @@ export function createAppLsp(deps: {
 		deps.say(`Installed ${name}`);
 	};
 
+	/**
+	 * dune's own copy of `id`, and what removing it would take. Null when there
+	 * is nothing of dune's to remove — the server is on PATH, in the project, is
+	 * a `manual` install (`go install`, `gem install`, …), or was never
+	 * installed at all.
+	 */
+	const removable = (id: string): { name: string; packages: string[] } | null => {
+		const spec = availableServers().find((server) => server.id === id);
+		if (!spec?.install || spec.install.kind === 'manual') return null;
+		const name = spec.command[0];
+		if (!name || !installedCommand(spec.command)) return null;
+		return { name, packages: spec.install.kind === 'npm' ? spec.install.packages : [name] };
+	};
+
+	/**
+	 * Delete dune's copy of a server. The client goes first: on Windows a
+	 * running process holds its own executable open, and everywhere else a
+	 * server left running against deleted files is a crash report nobody can
+	 * read.
+	 */
+	const uninstall = async (id: string): Promise<void> => {
+		const target = removable(id);
+		if (!target) return void deps.say(`${id}: dune did not install it`, 'warn');
+		const spec = availableServers().find((server) => server.id === id)!;
+		clients.get(id)?.dispose();
+		clients.delete(id);
+		lastError.delete(id);
+		const error = await removeServer(spec.install!, target.name);
+		if (error) return void deps.say(`Could not remove ${target.name}: ${error}`, 'error');
+		// The document it held is open in the other servers still; this only
+		// makes the next matching file try to spawn it again — and be offered
+		// the install.
+		setGeneration((current) => current + 1);
+		offered.delete(id);
+		deps.say(`Removed ${target.name} from ${SERVER_ROOT}`);
+	};
+
 	const statusRows = (): LspStatusRow[] =>
 		availableServers().map((server) => {
 			const override = deps.config.lspServers[server.id];
 			const command = override ?? server.command;
 			const client = clients.get(server.id);
-			const state =
+			const state: ServerState =
 				!deps.config.lsp || command.length === 0
 					? 'disabled'
-					: client === undefined || client === null
-						? 'stopped'
-						: client.state() === 'ready'
-							? 'ready'
-							: client.state() === 'starting'
-								? 'starting'
-								: 'stopped';
+					: client === null
+						? 'failed'
+						: client === undefined
+							? 'stopped'
+							: client.state() === 'ready'
+								? 'ready'
+								: client.state() === 'starting'
+									? 'starting'
+									: 'stopped';
 			let count = 0;
 			for (const sources of bySource.values()) {
 				count += sources.get(server.id)?.length ?? 0;
@@ -256,6 +326,8 @@ export function createAppLsp(deps: {
 				command: command.join(' ') || 'disabled',
 				state,
 				problems: count,
+				error: state === 'failed' ? (lastError.get(server.id) ?? 'failed') : null,
+				logs: logs[server.id] ?? [],
 			};
 		});
 
@@ -320,6 +392,8 @@ export function createAppLsp(deps: {
 		generation,
 		dependenciesChanged,
 		install,
+		removable,
+		uninstall,
 		statusRows,
 		restart,
 		setFlushEdit: (flush: (path: string) => void) => {

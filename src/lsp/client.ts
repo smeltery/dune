@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { CompletionItem, Diagnostic, DiagnosticReport, RpcMessage } from './protocol';
+import type { ServerLogLine } from './status';
 import { createDecoder, encodeMessage } from './transport';
 
 const INITIALIZE_TIMEOUT_MS = 30_000;
@@ -31,9 +33,24 @@ export interface LspClientOptions {
 	onDiagnostics: (uri: string, diagnostics: Diagnostic[]) => void;
 	onFail: (reason: string, missing: boolean) => void;
 	onRefreshDiagnostics?: () => void;
+	/**
+	 * A line for the status page's log: a stderr line, a window/logMessage, or a
+	 * lifecycle event. Fires whether or not anyone is looking — the page opens
+	 * after the interesting part, which is exactly when the log is wanted.
+	 */
+	onLog?: (entry: Omit<ServerLogLine, 'time'>) => void;
 	initializationOptions?: unknown;
 	settings?: unknown;
 }
+
+/** window/logMessage's MessageType, spelled out. Anything unknown reads as "log". */
+const MESSAGE_LEVEL: Record<number, string> = {
+	1: 'error',
+	2: 'warning',
+	3: 'info',
+	4: 'log',
+	5: 'debug',
+};
 
 interface PendingRequest {
 	resolve: (result: unknown) => void;
@@ -45,9 +62,22 @@ export function spawnLspClient(options: LspClientOptions) {
 	if (!executable) throw new Error('language server command is empty');
 	const child = spawn(executable, args, {
 		cwd: options.rootDir,
-		stdio: ['pipe', 'pipe', 'ignore'],
+		// stderr must be drained: servers chat on it freely, and anything written
+		// to an unread pipe would eventually block them mid-request. The listener
+		// below consumes it whether or not `onLog` is listening.
+		stdio: ['pipe', 'pipe', 'pipe'],
 	});
 	trackChild(child);
+
+	const log = (kind: ServerLogLine['kind'], text: string) => options.onLog?.({ kind, text });
+	log('event', `spawned ${options.command.join(' ')}`);
+
+	let stderrTail = '';
+	child.stderr?.on('data', (chunk: Buffer) => {
+		const lines = (stderrTail + chunk.toString()).split('\n');
+		stderrTail = lines.pop() ?? '';
+		for (const line of lines) if (line.trim().length > 0) log('stderr', line);
+	});
 
 	let state: 'starting' | 'ready' | 'dead' = 'starting';
 	let disposed = false;
@@ -94,6 +124,7 @@ export function spawnLspClient(options: LspClientOptions) {
 	const die = (reason: string | null, missing = false) => {
 		if (state === 'dead') return;
 		state = 'dead';
+		log('event', reason === null || disposed ? 'stopped' : reason);
 		for (const waiter of pending.values()) waiter.reject(new Error(reason ?? 'disposed'));
 		pending.clear();
 		queued.length = 0;
@@ -133,6 +164,11 @@ export function spawnLspClient(options: LspClientOptions) {
 		}
 		if (message.method === 'workspace/diagnostic/refresh') {
 			options.onRefreshDiagnostics?.();
+			return;
+		}
+		if (message.method === 'window/logMessage' || message.method === 'window/showMessage') {
+			const params = message.params as { type?: number; message?: string } | undefined;
+			log('server', `${MESSAGE_LEVEL[params?.type ?? 4] ?? 'log'}: ${params?.message ?? ''}`);
 			return;
 		}
 		if (message.id == null) return;
@@ -200,6 +236,7 @@ export function spawnLspClient(options: LspClientOptions) {
 			pullProvider = capabilities?.diagnosticProvider != null;
 			send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 			state = 'ready';
+			log('event', `initialized — diagnostics ${pullProvider ? 'pulled' : 'published'}`);
 			if (options.settings !== undefined) {
 				send({
 					jsonrpc: '2.0',
@@ -225,6 +262,7 @@ export function spawnLspClient(options: LspClientOptions) {
 		openDocument(path: string, languageId: string, text: string) {
 			const uri = pathToFileURL(path).href;
 			versions.set(uri, 1);
+			log('event', `opened ${relative(options.rootDir, path)}`);
 			notify('textDocument/didOpen', { textDocument: { uri, languageId, version: 1, text } });
 		},
 
@@ -269,6 +307,7 @@ export function spawnLspClient(options: LspClientOptions) {
 		closeDocument(path: string) {
 			const uri = pathToFileURL(path).href;
 			versions.delete(uri);
+			log('event', `closed ${relative(options.rootDir, path)}`);
 			notify('textDocument/didClose', { textDocument: { uri } });
 		},
 
