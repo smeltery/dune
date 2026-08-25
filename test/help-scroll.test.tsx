@@ -27,7 +27,7 @@ test('on a short terminal the table windows instead of clipping the footer', asy
 });
 
 test('a tall terminal shows every section with the plain footer', async () => {
-	const t = await openHelp(66);
+	const t = await openHelp(70);
 	const frame = t.captureCharFrame();
 
 	for (const section of ['General', 'Review', 'Editing', 'Search & replace', 'File tree', 'View']) {
