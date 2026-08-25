@@ -5,40 +5,10 @@ import { createMemo, createSignal, For, Show } from 'solid-js';
 import type { DiffFile } from '../../core/gitDiff';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
-import { diffFor, diffRows, displayPath } from '../diffRows';
-import type { DiffLine, DiffMode } from '../diffRows';
 import { listRows, modalWidth, PAD } from '../modal';
 import { Overlay } from '../Overlay';
-
-const fileHeader = (file: DiffFile): DiffLine => {
-	const diff = diffFor(file);
-	const stats = file.binary ? 'binary' : `+${diff.adds} -${diff.dels}`;
-	return { kind: 'header', text: `${displayPath(file)} ${stats}` };
-};
-
-function bodyFor(file: DiffFile, mode: DiffMode, width: number): DiffLine[] {
-	return diffRows(file, mode, width - PAD * 2);
-}
-
-/**
- * Every file's header and diff, one after another, so scrolling reads the whole
- * change set instead of paging one file at a time. `headerAt` is where each file's
- * header landed, for jumping between files without re-flattening the list.
- */
-function stackFiles(
-	files: readonly DiffFile[],
-	mode: DiffMode,
-	width: number,
-): { rows: DiffLine[]; headerAt: number[] } {
-	const rows: DiffLine[] = [];
-	const headerAt: number[] = [];
-	for (const file of files) {
-		headerAt.push(rows.length);
-		rows.push(fileHeader(file));
-		rows.push(...bodyFor(file, mode, width));
-	}
-	return { rows, headerAt };
-}
+import { bodyFor, diffFor, diffLineColor, displayPath, stackFiles } from './diffRows';
+import type { DiffMode } from './diffRows';
 
 export function DiffView(props: {
 	files: DiffFile[];
@@ -216,17 +186,7 @@ export function DiffView(props: {
 							<For each={body().slice(top(), top() + visibleRows())}>
 								{(row) => (
 									<text
-										fg={
-											row.kind === 'add'
-												? ui.gitAdded
-												: row.kind === 'del'
-													? ui.gitDeleted
-													: row.kind === 'header'
-														? ui.accent
-														: row.kind === 'meta'
-															? ui.faint
-															: ui.dim
-										}
+										fg={diffLineColor(row.kind)}
 										bg={ui.panelBg}
 										content={row.text.slice(0, width() - PAD * 2 - 2)}
 									/>

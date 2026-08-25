@@ -13,7 +13,7 @@ import type { DiffFile } from '../core/gitDiff';
 import type { IconTheme } from '../core/iconThemes';
 import { isImagePath } from '../core/image';
 import { isPdfPath } from '../core/pdf';
-import type { Match } from '../core/search';
+import type { Match as SearchMatch } from '../core/search';
 import type { CompletionItem, ProblemSeverity } from '../lsp/protocol';
 import type { CompletionReply } from '../lsp/completion';
 import type { VimMode } from '../editor/vim';
@@ -22,6 +22,8 @@ import { filetypeForPath } from '../languages/highlight';
 import { ui } from '../themes';
 import { ChoiceModal, type Choice } from '../ui/ChoiceModal';
 import { CommandPalette } from '../ui/CommandPalette';
+import { ComparePanel } from '../ui/overlays/ComparePanel';
+import { ComparisonView } from '../ui/overlays/ComparisonView';
 import { CommitModal } from '../ui/CommitModal';
 import type { CommitFile } from '../ui/CommitModal';
 import { ChangesView } from '../ui/ChangesView';
@@ -55,6 +57,7 @@ import type { Command } from './commands';
 import type { LspStatusRow } from '../lsp/status';
 import type { SidebarView } from './panes';
 import type { Review } from './review';
+import type { Comparison } from './state/comparison';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
@@ -122,6 +125,7 @@ interface AppViewProps {
 	changesFocus: string | null;
 	changesTitle: string;
 	review: Review;
+	comparison: Comparison;
 	plugins: import('./appearance/pluginsPanel').PluginsPanel;
 	previewTarget: { path: string; isDir: boolean } | null;
 	previewScroll: { pages: number; at: number } | null;
@@ -175,6 +179,7 @@ interface AppViewProps {
 	onGitPush: () => void;
 	onGitSync: () => void;
 	onGitBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
+	onCloseComparison: () => void;
 	onOpenReview: () => void;
 	onSelectSidebarView: (view: SidebarView) => void;
 	onCycleSidebarView: () => void;
@@ -190,8 +195,8 @@ interface AppViewProps {
 	onSubmitPrompt: (value: string) => void;
 	onCancelPrompt: () => void;
 	onConfirmPrompt: () => void;
-	onPickSearch: (match: Match) => void;
-	onReplaceOne?: (match: Match, replacement: string) => void;
+	onPickSearch: (match: SearchMatch) => void;
+	onReplaceOne?: (match: SearchMatch, replacement: string) => void;
 	onReplaceAll?: (query: string, replacement: string, options: SearchOptions) => void;
 	searchBuffers?: () => ReadonlyMap<string, string>;
 	onCloseSearch: () => void;
@@ -279,119 +284,162 @@ export function AppView(props: AppViewProps) {
 						    child does not. */}
 						<box flexGrow={1} flexDirection="column">
 							<Show
-								when={props.sidebarView !== 'files'}
+								when={props.comparison.active()}
 								fallback={
-									<FileTree
-										rootName={basename(props.rootDir) || props.rootDir}
-										nodes={props.nodes}
-										selectedPath={props.selectedPath}
-										expanded={props.expanded}
-										focused={props.focus === 'tree'}
-										width={props.treeWidth}
-										iconTheme={props.config.iconTheme}
-										iconThemes={props.iconThemes}
-										gitStatus={props.gitStatus}
-										gitIgnored={props.gitIgnored}
-										cutPaths={props.cutPaths}
-										markedPaths={props.markedPaths}
-										onActivate={props.onActivateNode}
-										onPin={(node) => props.onPinNode(node)}
-										onFocus={() => props.onTreeFocus()}
-									/>
-								}
-							>
-								<Show
-									when={props.sidebarView === 'plugins'}
-									fallback={
+									<Show
+										when={props.sidebarView !== 'files'}
+										fallback={
+											<FileTree
+												rootName={basename(props.rootDir) || props.rootDir}
+												nodes={props.nodes}
+												selectedPath={props.selectedPath}
+												expanded={props.expanded}
+												focused={props.focus === 'tree'}
+												width={props.treeWidth}
+												iconTheme={props.config.iconTheme}
+												iconThemes={props.iconThemes}
+												gitStatus={props.gitStatus}
+												gitIgnored={props.gitIgnored}
+												cutPaths={props.cutPaths}
+												markedPaths={props.markedPaths}
+												onActivate={props.onActivateNode}
+												onPin={(node) => props.onPinNode(node)}
+												onFocus={() => props.onTreeFocus()}
+											/>
+										}
+									>
 										<Show
-											when={props.sidebarView === 'review'}
+											when={props.sidebarView === 'plugins'}
 											fallback={
-												<GitPanel
-													rootDir={props.rootDir}
-													branch={props.branch}
-													base={props.diffBase}
-													upstream={props.upstream}
-													view={props.config.gitPanelView}
-													width={props.treeWidth}
-													focused={props.focus !== 'editor' && !props.blocked}
-													statusEntries={props.gitStatusEntries}
-													onFocus={() => props.onTreeFocus()}
-													onDiff={props.onGitDiff}
-													onOpenFile={props.onGitOpenFile}
-													onOpenCommit={props.onGitOpenCommit}
-													onDiscard={props.onGitDiscard}
-													onToggleStage={props.onGitToggleStage}
-													changesOpen={props.changesOpen}
-													onShowChanges={props.onShowChanges}
-													onCloseChanges={props.onCloseChanges}
-													onCursorRow={props.onGitCursorRow}
-													onLeave={props.onLeaveGitPanel}
-													onToggleDiffLayout={props.onToggleDiffLayout}
-													onCommit={props.onGitCommit}
-													onFocusMessage={props.onGitFocusMessage}
-													commitMessage={props.commitMessage}
-													messageEditing={props.messageEditing}
-													hasMessageHistory={props.hasMessageHistory}
-													onMessageInput={props.onGitMessageInput}
-													onWalkHistory={props.onGitWalkHistory}
-													onCancelMessage={props.onGitCancelMessage}
-													onPush={props.onGitPush}
-													onSync={props.onGitSync}
-													onBranchAction={props.onGitBranchAction}
-													reviewCount={props.review.count()}
-													onReview={props.onOpenReview}
-													onCycleView={props.onCycleSidebarView}
-												/>
+												<Show
+													when={props.sidebarView === 'review'}
+													fallback={
+														<GitPanel
+															rootDir={props.rootDir}
+															branch={props.branch}
+															base={props.diffBase}
+															upstream={props.upstream}
+															view={props.config.gitPanelView}
+															width={props.treeWidth}
+															focused={props.focus !== 'editor' && !props.blocked}
+															statusEntries={props.gitStatusEntries}
+															onFocus={() => props.onTreeFocus()}
+															onDiff={props.onGitDiff}
+															onOpenFile={props.onGitOpenFile}
+															onOpenCommit={props.onGitOpenCommit}
+															onDiscard={props.onGitDiscard}
+															onToggleStage={props.onGitToggleStage}
+															changesOpen={props.changesOpen}
+															onShowChanges={props.onShowChanges}
+															onCloseChanges={props.onCloseChanges}
+															onCursorRow={props.onGitCursorRow}
+															onLeave={props.onLeaveGitPanel}
+															onToggleDiffLayout={props.onToggleDiffLayout}
+															onCommit={props.onGitCommit}
+															onFocusMessage={props.onGitFocusMessage}
+															commitMessage={props.commitMessage}
+															messageEditing={props.messageEditing}
+															hasMessageHistory={props.hasMessageHistory}
+															onMessageInput={props.onGitMessageInput}
+															onWalkHistory={props.onGitWalkHistory}
+															onCancelMessage={props.onGitCancelMessage}
+															onPush={props.onGitPush}
+															onSync={props.onGitSync}
+															onBranchAction={props.onGitBranchAction}
+															reviewCount={props.review.count()}
+															onReview={props.onOpenReview}
+															onCycleView={props.onCycleSidebarView}
+														/>
+													}
+												>
+													<ReviewPanel
+														rows={props.review.rows()}
+														cursor={props.review.cursor()}
+														count={props.review.count()}
+														pull={
+															props.review.pull()
+																? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
+																: null
+														}
+														fetching={props.review.fetching()}
+														focused={props.focus === 'tree' && !props.blocked}
+														width={props.treeWidth}
+														onFocus={() => props.onTreeFocus()}
+														onActivate={(index) => props.review.activate(index)}
+														onCollapseAll={props.review.collapseAll}
+														onMove={(delta) => {
+															props.review.move(delta);
+															props.review.show();
+														}}
+														onFetch={props.review.fetchPullRequest}
+														onRemove={props.review.remove}
+														onReply={props.review.promptReply}
+														onClose={() => props.onSelectSidebarView('files')}
+														onCycleView={props.onCycleSidebarView}
+													/>
+												</Show>
 											}
 										>
-											<ReviewPanel
-												rows={props.review.rows()}
-												cursor={props.review.cursor()}
-												count={props.review.count()}
-												pull={
-													props.review.pull()
-														? `#${props.review.pull()!.number} ${props.review.pull()!.title}`
-														: null
-												}
-												fetching={props.review.fetching()}
+											<PluginsPanel
+												rows={props.plugins.rows()}
+												cursor={props.plugins.cursor()}
+												installedCount={props.plugins.installedCount()}
+												query={props.plugins.query()}
 												focused={props.focus === 'tree' && !props.blocked}
 												width={props.treeWidth}
 												onFocus={() => props.onTreeFocus()}
-												onActivate={(index) => props.review.activate(index)}
-												onCollapseAll={props.review.collapseAll}
-												onMove={(delta) => {
-													props.review.move(delta);
-													props.review.show();
-												}}
-												onFetch={props.review.fetchPullRequest}
-												onRemove={props.review.remove}
-												onReply={props.review.promptReply}
+												onActivate={(index) => props.plugins.activate(index)}
+												onMove={(delta) => props.plugins.move(delta)}
+												onRemove={props.plugins.remove}
+												onCheck={props.plugins.checkNow}
+												onUpdateAll={props.plugins.updateAll}
+												onOpenSearch={props.plugins.openSearch}
+												onCloseSearch={props.plugins.closeSearch}
+												onSearch={props.plugins.search}
 												onClose={() => props.onSelectSidebarView('files')}
 												onCycleView={props.onCycleSidebarView}
 											/>
 										</Show>
+									</Show>
+								}
+							>
+								<ComparePanel
+									state={props.comparison.state()}
+									comparison={props.comparison.result()}
+									files={props.comparison.filteredFiles()}
+									commits={props.comparison.filteredCommits()}
+									mode={props.comparison.mode()}
+									cursor={
+										props.comparison.mode() === 'files'
+											? props.comparison.fileCursor()
+											: props.comparison.commitCursor()
 									}
-								>
-									<PluginsPanel
-										rows={props.plugins.rows()}
-										cursor={props.plugins.cursor()}
-										installedCount={props.plugins.installedCount()}
-										query={props.plugins.query()}
-										focused={props.focus === 'tree' && !props.blocked}
-										width={props.treeWidth}
-										onFocus={() => props.onTreeFocus()}
-										onActivate={(index) => props.plugins.activate(index)}
-										onMove={(delta) => props.plugins.move(delta)}
-										onRemove={props.plugins.remove}
-										onCheck={props.plugins.checkNow}
-										onUpdateAll={props.plugins.updateAll}
-										onOpenSearch={props.plugins.openSearch}
-										onCloseSearch={props.plugins.closeSearch}
-										onSearch={props.plugins.search}
-										onClose={() => props.onSelectSidebarView('files')}
-										onCycleView={props.onCycleSidebarView}
-									/>
-								</Show>
+									filter={props.comparison.filter()}
+									filtering={props.comparison.filtering()}
+									error={props.comparison.error()}
+									focused={!props.blocked && !props.comparison.detailOpen()}
+									width={props.treeWidth}
+									height={editorHeight()}
+									onFocus={() => props.onTreeFocus()}
+									onActivate={(index) => {
+										props.comparison.move(
+											index -
+												(props.comparison.mode() === 'files'
+													? props.comparison.fileCursor()
+													: props.comparison.commitCursor()),
+										);
+										props.comparison.openSelection();
+										props.onEditorFocus();
+									}}
+									onMove={props.comparison.move}
+									onToggleMode={props.comparison.toggleMode}
+									onOpenFilter={props.comparison.openFilter}
+									onCloseFilter={props.comparison.closeFilter}
+									onFilter={props.comparison.setFilter}
+									onOpenBase={props.comparison.openBasePicker}
+									onSwitchBranch={() => props.onGitBranchAction('switch')}
+									onClose={props.onCloseComparison}
+								/>
 							</Show>
 						</box>
 					</box>
@@ -422,72 +470,92 @@ export function AppView(props: AppViewProps) {
 					when={props.changesOpen}
 					fallback={
 						<Show
-							when={activeViewer()}
+							when={props.comparison.detailOpen()}
 							fallback={
 								<Show
-									when={props.renderedMarkdownPath}
+									when={activeViewer()}
 									fallback={
-										<EditorPane
-											path={props.activePath}
-											content={props.activeBuffer?.content ?? ''}
-											filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
-											focused={props.focus === 'editor'}
-											theme={props.config.theme}
-											reloadKey={props.reloadKey}
-											goto={props.goto}
-											history={props.history}
-											edit={props.edit}
-											lineOp={props.lineOp}
-											foldOp={props.foldOp}
-											completion={props.completion}
-											vim={props.config.vim}
-											cursorStyle={props.config.cursorStyle}
-											wrap={props.config.wrap}
-											scrollPastEnd={props.config.scrollPastEnd}
-											tabSize={props.config.tabSize}
-											gitLines={props.gitLines}
-											problems={props.problems}
-											problemText={props.config.lspInline}
-											reviews={props.reviews}
-											reviewText={props.config.reviewInline}
-											notice={props.notice}
-											blocked={props.blocked}
-											onChange={props.onEditorChange}
-											onCursor={props.onCursor}
-											onFocus={props.onEditorFocus}
-											onVimMode={props.onVimMode}
-											complete={props.onComplete}
-											resolveCompletion={props.onResolveCompletion}
-											onQuit={props.onQuit}
-										/>
+										<Show
+											when={props.renderedMarkdownPath}
+											fallback={
+												<EditorPane
+													path={props.activePath}
+													content={props.activeBuffer?.content ?? ''}
+													filetype={
+														props.activePath ? filetypeForPath(props.activePath!) : undefined
+													}
+													focused={props.focus === 'editor'}
+													theme={props.config.theme}
+													reloadKey={props.reloadKey}
+													goto={props.goto}
+													history={props.history}
+													edit={props.edit}
+													lineOp={props.lineOp}
+													foldOp={props.foldOp}
+													completion={props.completion}
+													vim={props.config.vim}
+													cursorStyle={props.config.cursorStyle}
+													wrap={props.config.wrap}
+													scrollPastEnd={props.config.scrollPastEnd}
+													tabSize={props.config.tabSize}
+													gitLines={props.gitLines}
+													problems={props.problems}
+													problemText={props.config.lspInline}
+													reviews={props.reviews}
+													reviewText={props.config.reviewInline}
+													notice={props.notice}
+													blocked={props.blocked}
+													onChange={props.onEditorChange}
+													onCursor={props.onCursor}
+													onFocus={props.onEditorFocus}
+													onVimMode={props.onVimMode}
+													complete={props.onComplete}
+													resolveCompletion={props.onResolveCompletion}
+													onQuit={props.onQuit}
+												/>
+											}
+										>
+											{(path: () => string) => (
+												<MarkdownView
+													path={path()}
+													name={basename(path())}
+													content={props.activeBuffer?.content ?? ''}
+													width={editorWidth()}
+													theme={props.config.theme}
+													focused={editorSlotFocused()}
+													blocked={props.blocked}
+													onFocus={props.onEditorFocus}
+													onShowSource={props.onToggleMarkdown}
+												/>
+											)}
+										</Show>
 									}
 								>
 									{(path: () => string) => (
-										<MarkdownView
+										<ViewerPane
 											path={path()}
-											name={basename(path())}
-											content={props.activeBuffer?.content ?? ''}
 											width={editorWidth()}
-											theme={props.config.theme}
+											height={editorHeight()}
 											focused={editorSlotFocused()}
 											blocked={props.blocked}
 											onFocus={props.onEditorFocus}
-											onShowSource={props.onToggleMarkdown}
 										/>
 									)}
 								</Show>
 							}
 						>
-							{(path: () => string) => (
-								<ViewerPane
-									path={path()}
-									width={editorWidth()}
-									height={editorHeight()}
-									focused={editorSlotFocused()}
-									blocked={props.blocked}
-									onFocus={props.onEditorFocus}
-								/>
-							)}
+							<ComparisonView
+								file={props.comparison.selectedFile()}
+								content={props.comparison.selectedContent()}
+								commit={props.comparison.selectedCommit()}
+								mode={props.config.diffView}
+								width={editorWidth()}
+								height={editorHeight()}
+								focused={!props.blocked}
+								onFocus={props.onEditorFocus}
+								onMoveFile={props.comparison.moveDetail}
+								onClose={props.comparison.closeDetail}
+							/>
 						</Show>
 					}
 				>
@@ -673,6 +741,17 @@ export function AppView(props: AppViewProps) {
 						onPick={props.onPickBranch}
 						onDelete={props.onDeleteBranchChoice}
 						onCancel={props.onCloseBranchChoices}
+					/>
+				)}
+			</Show>
+			<Show when={props.comparison.basePick()}>
+				{(branches: () => { name: string; remote: boolean }[]) => (
+					<ChoiceModal
+						title="Compare against branch"
+						message="Enter compares the current branch against the selected branch."
+						choices={branches().map((branch) => ({ id: branch.name, label: branch.name }))}
+						onPick={props.comparison.chooseBase}
+						onCancel={props.comparison.closeBasePicker}
 					/>
 				)}
 			</Show>

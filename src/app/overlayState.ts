@@ -18,6 +18,7 @@ export function isOverlayOpen(deps: {
 	picker: Accessor<PickerState>;
 	problemsOpen: Accessor<ProblemsScope | false>;
 	commitFiles: Accessor<unknown>;
+	comparisonBase: Accessor<unknown>;
 }) {
 	return !!(
 		deps.prompt() ||
@@ -33,7 +34,8 @@ export function isOverlayOpen(deps: {
 		deps.update() ||
 		deps.picker() ||
 		deps.problemsOpen() ||
-		deps.commitFiles()
+		deps.commitFiles() ||
+		deps.comparisonBase()
 	);
 }
 

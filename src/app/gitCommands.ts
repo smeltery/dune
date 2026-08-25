@@ -98,7 +98,6 @@ export function createGitCommands(deps: {
 	type BranchMode =
 		| 'commitDiff'
 		| 'commits'
-		| 'compare'
 		| 'delete'
 		| 'deleteForce'
 		| 'deleteTag'
@@ -110,7 +109,7 @@ export function createGitCommands(deps: {
 		| 'rename'
 		| 'stash'
 		| 'switch';
-	const [branchMode, setBranchMode] = createSignal<BranchMode>('compare');
+	const [branchMode, setBranchMode] = createSignal<BranchMode>('switch');
 	const BRANCH_CHOICE_COPY: Record<BranchMode, { title: string; message: string }> = {
 		switch: { title: 'Switch to branch', message: 'Enter checks out the selected branch.' },
 		commits: {
@@ -140,10 +139,6 @@ export function createGitCommands(deps: {
 			message: "Enter opens the selected commit's diff for this file.",
 		},
 		removeRemote: { title: 'Remove remote', message: 'Enter chooses a remote to remove.' },
-		compare: {
-			title: 'Compare against branch',
-			message: 'Enter compares the current branch against the selected branch.',
-		},
 	};
 	const [branchChoices, setBranchChoices] = createSignal<{ id: string; label: string }[] | null>(
 		null,
@@ -325,40 +320,6 @@ export function createGitCommands(deps: {
 
 	const removeRemoteConfirmed = (name: string) =>
 		runGit('Removing remote', () => removeRemote(deps.rootDir, name), `Removed remote ${name}`);
-
-	const compareWith = (base: string) => {
-		const files = branchDiffFiles(deps.rootDir, base);
-		const commits = branchDiffCommits(deps.rootDir, base);
-		const behind = branchBehindCount(deps.rootDir, base);
-		if (files.length === 0) {
-			deps.say(`No differences from ${base}: ↑${commits.length} ↓${behind}, 0 files`);
-			return;
-		}
-		const stats = files
-			.map((file) => unifiedDiff(file.rel, file.oldText, file.newText))
-			.reduce(
-				(total, patch) => ({ adds: total.adds + patch.adds, dels: total.dels + patch.dels }),
-				{ adds: 0, dels: 0 },
-			);
-		const binary = files.filter((file) => file.binary).length;
-		const binaryPart = binary === 0 ? '' : `, ${binary} binary`;
-		setDiffTitle(`Comparing against ${base}`);
-		setDiff(files);
-		deps.say(
-			`Comparing against ${base}: ↑${commits.length} ↓${behind}, ${files.length} files${binaryPart}, +${stats.adds} -${stats.dels}`,
-		);
-	};
-
-	const openBranchComparison = () => {
-		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
-		const branches = listBranches(deps.rootDir).filter((branch) => branch.name !== deps.branch());
-		if (branches.length === 0) {
-			const base = defaultBranch(deps.rootDir);
-			return base ? compareWith(base) : deps.say('No branch to compare against', 'warn');
-		}
-		setBranchMode('compare');
-		setBranchChoices(branches.map((branch) => ({ id: branch.name, label: branch.name })));
-	};
 
 	const openDiffBasePicker = () => {
 		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
@@ -713,7 +674,6 @@ export function createGitCommands(deps: {
 			if (branchMode() === 'commits') return showCommitChoices(name);
 			if (branchMode() === 'commitDiff') return openCommitDiff(name);
 			if (branchMode() === 'fileHistory') return openCommitDiff(name, historyPath() ?? undefined);
-			if (branchMode() === 'compare') return compareWith(name);
 			if (branchMode() === 'diffBase') {
 				setDiffBase(name);
 				deps.setGitRevision((n) => n + 1);
@@ -777,17 +737,13 @@ export function createGitCommands(deps: {
 		openCommitDiff,
 		promptDiscard,
 		discard,
-		openBranchComparison,
 		openBranchCommitComparison,
 		openDiffBasePicker,
 		resetDiffBase,
-		openPanelBranchAction: (action: 'switch' | 'compare' | 'commits') => {
+		openPanelBranchAction: (action: 'switch' | 'commits') => {
 			if (action === 'switch') return openBranchSwitch();
-			if (action === 'commits') {
-				const base = diffBase();
-				return base ? showCommitChoices(base) : openBranchCommitComparison();
-			}
-			return openBranchComparison();
+			const base = diffBase();
+			return base ? showCommitChoices(base) : openBranchCommitComparison();
 		},
 		openBranchSwitch,
 		openBranchMerge,
