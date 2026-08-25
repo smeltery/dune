@@ -31,6 +31,7 @@ export interface PluginsPanelProps {
 	onCloseSearch: () => void;
 	onSearch: (value: string) => void;
 	onClose: () => void;
+	onCycleView: () => void;
 }
 
 export function PluginsPanel(props: PluginsPanelProps) {
@@ -44,6 +45,13 @@ export function PluginsPanel(props: PluginsPanelProps) {
 
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
+		// Shift+Tab walks the tab strip above the sidebar even while searching: it
+		// is not a keystroke the search field has any use for.
+		if (key.name === 'tab' && key.shift) {
+			props.onCycleView();
+			key.preventDefault();
+			return;
+		}
 		if (props.query !== null) {
 			if (key.name === 'escape') {
 				props.onCloseSearch();

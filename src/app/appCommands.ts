@@ -104,8 +104,7 @@ export function createAppCommands(deps: {
 	gitCommands: {
 		openCommitPicker: (variant?: 'plain' | 'push' | 'sync') => void;
 		promptAmend: () => void;
-		togglePanel: () => void;
-		sourceControl?: () => void;
+		sourceControl: () => void;
 		openDiff: (path?: string | null) => void;
 		promptDiscard: (path: string, status?: FileStatus) => void;
 		openFileHistory: (path: string) => void;
@@ -319,7 +318,7 @@ export function createAppCommands(deps: {
 				commitPush: () => deps.gitCommands.openCommitPicker('push'),
 				commitSync: () => deps.gitCommands.openCommitPicker('sync'),
 				commitAmend: deps.gitCommands.promptAmend,
-				sourceControl: deps.gitCommands.sourceControl ?? deps.gitCommands.togglePanel,
+				sourceControl: deps.gitCommands.sourceControl,
 				gitStage: deps.gitCommands.toggleStageActiveFile,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
 				discardCurrent: () => {

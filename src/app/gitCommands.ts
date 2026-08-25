@@ -88,7 +88,6 @@ export function createGitCommands(deps: {
 	const [messageDraft, setMessageDraft] = createSignal('');
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [diffTitle, setDiffTitle] = createSignal<string | null>(null);
-	const [panel, setPanel] = createSignal(false);
 	type BranchMode =
 		| 'commitDiff'
 		| 'commits'
@@ -606,9 +605,6 @@ export function createGitCommands(deps: {
 		branchChoices,
 		diff,
 		diffTitle,
-		panel,
-		setPanel,
-		togglePanel: () => setPanel((open) => !open),
 		closeDiff: () => {
 			setDiff(null);
 			setDiffTitle(null);
