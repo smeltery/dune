@@ -569,7 +569,6 @@ export function App(props: AppTypes.AppProps) {
 		gitCommands: {
 			...gitCommands,
 			sourceControl: toggleGitPanel,
-			togglePanel: toggleGitPanel,
 			openBranchComparison: openComparison,
 		},
 		setHelp,
