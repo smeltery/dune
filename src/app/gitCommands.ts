@@ -1,6 +1,8 @@
 import { relative } from 'node:path';
 import { createSignal } from 'solid-js';
 
+import type { ChangeSection, ChangesMeta } from '../core/changeSections';
+import { orderedChanges, rowSlotKey, slotKey, takeChangeSections } from '../core/changeSections';
 import type { ChangeRow } from '../core/changeTree';
 import { changesFor, changesFromEntries, rowArea } from '../core/changeTree';
 import {
@@ -46,6 +48,7 @@ import {
 import { stepHistory } from '../core/messageHistory';
 import { unifiedDiff } from '../core/diff';
 import {
+	areaDiffFile,
 	branchBehindCount,
 	branchDiffCommits,
 	branchDiffFiles,
@@ -66,6 +69,8 @@ export function createGitCommands(deps: {
 	activePath: () => string | null;
 	branch: () => string | null;
 	diffBase: () => string | null;
+	/** The panel's own status, so the stacked page reuses the scan App already ran. */
+	statusEntries: () => Map<string, StatusEntry>;
 	upstream: () => Upstream | null;
 	setDiffBase: (base: string | null) => void;
 	setBusy: (busy: { label: string; done: number; total: number } | null) => void;
@@ -175,6 +180,84 @@ export function createGitCommands(deps: {
 					relative(deps.rootDir, a.path).localeCompare(relative(deps.rootDir, b.path)),
 				),
 		);
+	};
+
+	const [changesOpen, setChangesOpen] = createSignal(false);
+	const [changeSections, setChangeSections] = createSignal<ChangeSection[]>([]);
+	const [changesMeta, setChangesMeta] = createSignal<ChangesMeta>({ total: 0, adds: 0, dels: 0 });
+	/** Which section the panel's cursor is on, so the page can scroll to it. */
+	const [changesFocus, setChangesFocus] = createSignal<string | null>(null);
+
+	const panelChanges = () => changesFromEntries(deps.rootDir, deps.statusEntries());
+
+	/**
+	 * Rebuild the stacked page from the status the panel is showing. Sections are
+	 * reused where neither text moved, so a git refresh does not remount the stack
+	 * and lose its scroll position.
+	 */
+	const rebuildChanges = () => {
+		const changes = panelChanges();
+		const prev = new Map(changeSections().map((section) => [section.key, section]));
+		const { sections, adds, dels } = takeChangeSections(
+			orderedChanges(changes),
+			(change) =>
+				areaDiffFile(change.path, change.rel, change.status, change.area, diffBase(), undefined),
+			prev,
+			changesFocus(),
+		);
+		setChangeSections(sections);
+		setChangesMeta({ total: changes.length, adds, dels });
+	};
+
+	/**
+	 * Show every change over the editor slot. The source-control panel is the list
+	 * that pages it, so this opens the panel as well — a page whose arrows have
+	 * nowhere to live is a dead end.
+	 */
+	const showChanges = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		deps.showView('git');
+		if (panelChanges().length === 0) return deps.say('No changes', 'warn');
+		setChangesOpen(true);
+		rebuildChanges();
+	};
+
+	/**
+	 * Point the page at the panel's cursor. A heading or folder row leaves it as it
+	 * was — folding a folder must not throw the reader onto another file. The stack
+	 * is rebuilt when the cursor lands on a file the row cap left out, so the page
+	 * and the cursor cannot disagree about which change is on screen.
+	 */
+	const focusChange = (row: ChangeRow | undefined) => {
+		const key = rowSlotKey(row);
+		if (!changesOpen() || key === null) return;
+		setChangesFocus(key);
+		if (!changeSections().some((section) => section.key === key)) rebuildChanges();
+	};
+
+	/**
+	 * Re-read the repository under the open page. It is a snapshot taken when it
+	 * opened, so a commit, stash or save made anywhere else would otherwise leave it
+	 * showing changes that no longer exist. Not a command: App runs it whenever git
+	 * moves.
+	 */
+	const refreshChanges = () => {
+		if (!changesOpen()) return;
+		// Opening an empty page from the palette still explains itself; a commit or
+		// discard that cleared the last change should not leave a message covering
+		// the editor.
+		const had = changesMeta().total > 0;
+		rebuildChanges();
+		if (had && changesMeta().total === 0) setChangesOpen(false);
+	};
+
+	/** Stage or unstage the file one section names — Space on the page's header. */
+	const toggleStageSection = (key: string) => {
+		const section = changeSections().find((entry) => entry.key === key);
+		if (!section) return;
+		const change = panelChanges().find((entry) => slotKey(entry.path, entry.area) === key);
+		if (!change) return deps.say('Nothing to stage', 'warn');
+		toggleStage(deps.statusEntries(), { kind: 'file', depth: 0, label: section.rel, change });
 	};
 
 	const openDiff = (path?: string | null) => {
@@ -611,6 +694,16 @@ export function createGitCommands(deps: {
 			setDiff(null);
 			setDiffTitle(null);
 		},
+		changesOpen,
+		changeSections,
+		changesMeta,
+		changesFocus,
+		changesTitle: () => (diffBase() === null ? 'Uncommitted' : `Compared against ${diffBase()}`),
+		showChanges,
+		focusChange,
+		refreshChanges,
+		toggleStageSection,
+		closeChanges: () => setChangesOpen(false),
 		cancelCommit: () => setCommitFiles(null),
 		closeBranchChoices: () => setBranchChoices(null),
 		branchChoiceTitle: () => BRANCH_CHOICE_COPY[branchMode()].title,
@@ -681,6 +774,7 @@ export function createGitCommands(deps: {
 		fetch: () => runGit('Fetching', () => gitFetch(deps.rootDir), 'Fetched'),
 		pull: () => runGit('Pulling', () => gitPull(deps.rootDir), 'Pulled'),
 		openDiff,
+		openCommitDiff,
 		promptDiscard,
 		discard,
 		openBranchComparison,

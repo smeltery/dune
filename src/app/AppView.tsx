@@ -4,6 +4,7 @@ import type { MouseEvent } from '@opentui/core';
 import { useTerminalDimensions } from '@opentui/solid';
 import { For, Show } from 'solid-js';
 
+import type { ChangeSection, ChangesMeta } from '../core/changeSections';
 import type { ChangeRow } from '../core/changeTree';
 import type { Config } from '../core/config';
 import type { TreeNode } from '../core/fs';
@@ -23,6 +24,7 @@ import { ChoiceModal, type Choice } from '../ui/ChoiceModal';
 import { CommandPalette } from '../ui/CommandPalette';
 import { CommitModal } from '../ui/CommitModal';
 import type { CommitFile } from '../ui/CommitModal';
+import { ChangesView } from '../ui/ChangesView';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { DiffView } from '../ui/overlays/DiffView';
 import { EditorPane } from '../ui/EditorPane';
@@ -114,6 +116,11 @@ interface AppViewProps {
 	search: { scope: SearchScope; replacing?: boolean } | null;
 	picker: 'files' | 'tabs' | null;
 	sidebarView: SidebarView;
+	changesOpen: boolean;
+	changeSections: ChangeSection[];
+	changesMeta: ChangesMeta;
+	changesFocus: string | null;
+	changesTitle: string;
 	review: Review;
 	plugins: import('./appearance/pluginsPanel').PluginsPanel;
 	previewTarget: { path: string; isDir: boolean } | null;
@@ -147,8 +154,16 @@ interface AppViewProps {
 	onPinNode: (node: TreeNode) => void;
 	onTreeFocus: () => void;
 	onGitDiff: (path: string) => void;
+	onGitOpenFile: (path: string) => void;
+	onGitOpenCommit: (oid: string) => void;
 	onGitDiscard: (path: string, status: FileStatus) => void;
 	onGitToggleStage: (row: ChangeRow) => void;
+	onGitCursorRow: (row: ChangeRow | undefined) => void;
+	onShowChanges: () => void;
+	onCloseChanges: () => void;
+	onToggleStageSection: (key: string) => void;
+	onToggleDiffLayout: () => void;
+	onLeaveGitPanel: () => void;
 	onGitCommit: () => void;
 	onGitFocusMessage: () => void;
 	commitMessage: string;
@@ -302,8 +317,16 @@ export function AppView(props: AppViewProps) {
 													statusEntries={props.gitStatusEntries}
 													onFocus={() => props.onTreeFocus()}
 													onDiff={props.onGitDiff}
+													onOpenFile={props.onGitOpenFile}
+													onOpenCommit={props.onGitOpenCommit}
 													onDiscard={props.onGitDiscard}
 													onToggleStage={props.onGitToggleStage}
+													changesOpen={props.changesOpen}
+													onShowChanges={props.onShowChanges}
+													onCloseChanges={props.onCloseChanges}
+													onCursorRow={props.onGitCursorRow}
+													onLeave={props.onLeaveGitPanel}
+													onToggleDiffLayout={props.onToggleDiffLayout}
 													onCommit={props.onGitCommit}
 													onFocusMessage={props.onGitFocusMessage}
 													commitMessage={props.commitMessage}
@@ -393,73 +416,96 @@ export function AppView(props: AppViewProps) {
 						<box flexGrow={1} backgroundColor={ui.bg} />
 					</box>
 				</Show>
+				{/* The changes page owns the editor slot while it is up: it is a reading
+            surface for the whole change set, not a modal over one file. */}
 				<Show
-					when={activeViewer()}
+					when={props.changesOpen}
 					fallback={
 						<Show
-							when={props.renderedMarkdownPath}
+							when={activeViewer()}
 							fallback={
-								<EditorPane
-									path={props.activePath}
-									content={props.activeBuffer?.content ?? ''}
-									filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
-									focused={props.focus === 'editor'}
-									theme={props.config.theme}
-									reloadKey={props.reloadKey}
-									goto={props.goto}
-									history={props.history}
-									edit={props.edit}
-									lineOp={props.lineOp}
-									foldOp={props.foldOp}
-									completion={props.completion}
-									vim={props.config.vim}
-									cursorStyle={props.config.cursorStyle}
-									wrap={props.config.wrap}
-									scrollPastEnd={props.config.scrollPastEnd}
-									tabSize={props.config.tabSize}
-									gitLines={props.gitLines}
-									problems={props.problems}
-									problemText={props.config.lspInline}
-									reviews={props.reviews}
-									reviewText={props.config.reviewInline}
-									notice={props.notice}
-									blocked={props.blocked}
-									onChange={props.onEditorChange}
-									onCursor={props.onCursor}
-									onFocus={props.onEditorFocus}
-									onVimMode={props.onVimMode}
-									complete={props.onComplete}
-									resolveCompletion={props.onResolveCompletion}
-									onQuit={props.onQuit}
-								/>
+								<Show
+									when={props.renderedMarkdownPath}
+									fallback={
+										<EditorPane
+											path={props.activePath}
+											content={props.activeBuffer?.content ?? ''}
+											filetype={props.activePath ? filetypeForPath(props.activePath!) : undefined}
+											focused={props.focus === 'editor'}
+											theme={props.config.theme}
+											reloadKey={props.reloadKey}
+											goto={props.goto}
+											history={props.history}
+											edit={props.edit}
+											lineOp={props.lineOp}
+											foldOp={props.foldOp}
+											completion={props.completion}
+											vim={props.config.vim}
+											cursorStyle={props.config.cursorStyle}
+											wrap={props.config.wrap}
+											scrollPastEnd={props.config.scrollPastEnd}
+											tabSize={props.config.tabSize}
+											gitLines={props.gitLines}
+											problems={props.problems}
+											problemText={props.config.lspInline}
+											reviews={props.reviews}
+											reviewText={props.config.reviewInline}
+											notice={props.notice}
+											blocked={props.blocked}
+											onChange={props.onEditorChange}
+											onCursor={props.onCursor}
+											onFocus={props.onEditorFocus}
+											onVimMode={props.onVimMode}
+											complete={props.onComplete}
+											resolveCompletion={props.onResolveCompletion}
+											onQuit={props.onQuit}
+										/>
+									}
+								>
+									{(path: () => string) => (
+										<MarkdownView
+											path={path()}
+											name={basename(path())}
+											content={props.activeBuffer?.content ?? ''}
+											width={editorWidth()}
+											theme={props.config.theme}
+											focused={editorSlotFocused()}
+											blocked={props.blocked}
+											onFocus={props.onEditorFocus}
+											onShowSource={props.onToggleMarkdown}
+										/>
+									)}
+								</Show>
 							}
 						>
 							{(path: () => string) => (
-								<MarkdownView
+								<ViewerPane
 									path={path()}
-									name={basename(path())}
-									content={props.activeBuffer?.content ?? ''}
 									width={editorWidth()}
-									theme={props.config.theme}
+									height={editorHeight()}
 									focused={editorSlotFocused()}
 									blocked={props.blocked}
 									onFocus={props.onEditorFocus}
-									onShowSource={props.onToggleMarkdown}
 								/>
 							)}
 						</Show>
 					}
 				>
-					{(path: () => string) => (
-						<ViewerPane
-							path={path()}
-							width={editorWidth()}
-							height={editorHeight()}
-							focused={editorSlotFocused()}
-							blocked={props.blocked}
-							onFocus={props.onEditorFocus}
-						/>
-					)}
+					<ChangesView
+						sections={props.changeSections}
+						meta={props.changesMeta}
+						focusKey={props.changesFocus}
+						title={props.changesTitle}
+						mode={props.config.diffView}
+						width={editorWidth()}
+						focused={props.focus === 'editor'}
+						blocked={props.blocked}
+						staging={props.diffBase === null}
+						onFocus={props.onEditorFocus}
+						onToggleMode={props.onToggleDiffLayout}
+						onToggleStage={props.onToggleStageSection}
+						onClose={props.onCloseChanges}
+					/>
 				</Show>
 			</box>
 			<StatusBar

@@ -1,5 +1,5 @@
 import { useRenderer, useTerminalDimensions } from '@opentui/solid';
-import { createMemo, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal, on } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { resolvedTheme, type Config } from '../core/config';
 import { flattenVisible } from '../core/fs';
@@ -321,6 +321,7 @@ export function App(props: AppTypes.AppProps) {
 		activePath,
 		branch,
 		diffBase,
+		statusEntries: gitStatusEntries,
 		upstream,
 		setDiffBase,
 		setBusy,
@@ -331,6 +332,16 @@ export function App(props: AppTypes.AppProps) {
 		syncFromDisk: () => documentActions.syncFromDisk(),
 		showView: (view: SidebarView) => showView(view),
 	});
+	/**
+	 * The changes page is a snapshot, so anything that moves the repository has to
+	 * push it back: a commit made from the panel, a save picked up by the watcher, a
+	 * stage from the page itself. `reloadKey` is in the key because a reload is what
+	 * turns an edit on disk into new text to diff against.
+	 */
+	// Keyed on the status map itself, not on the revisions that produce it: the scan
+	// is a fresh Map every time, and waiting for it is what guarantees this reads
+	// the status the panel is already showing rather than the one before it.
+	createEffect(on(gitStatusEntries, () => gitCommands.refreshChanges(), { defer: true }));
 	const activeRepo = () => {
 		const path = activePath();
 		if (path) return repoOf(path, discoverRepos(rootDir, config.gitScanDepth));
@@ -755,6 +766,11 @@ export function App(props: AppTypes.AppProps) {
 				search={search()}
 				picker={picker()}
 				sidebarView={sidebarView()}
+				changesOpen={gitCommands.changesOpen()}
+				changeSections={gitCommands.changeSections()}
+				changesMeta={gitCommands.changesMeta()}
+				changesFocus={gitCommands.changesFocus()}
+				changesTitle={gitCommands.changesTitle()}
 				review={review}
 				plugins={plugins}
 				previewTarget={preview.target()}
@@ -788,6 +804,15 @@ export function App(props: AppTypes.AppProps) {
 				onPinNode={(node) => pinTab(node.path)}
 				onTreeFocus={() => setFocus('tree')}
 				onGitDiff={gitCommands.openDiff}
+				onGitOpenFile={(path) => {
+					gitCommands.closeChanges();
+					openFile(path);
+					setFocus('editor');
+				}}
+				onGitOpenCommit={(oid) => {
+					gitCommands.closeChanges();
+					gitCommands.openCommitDiff(oid);
+				}}
 				onGitDiscard={gitCommands.promptDiscard}
 				onGitToggleStage={(row) => gitCommands.toggleStage(gitStatusEntries(), row)}
 				onGitCommit={gitCommands.commitFromBox}
@@ -798,6 +823,15 @@ export function App(props: AppTypes.AppProps) {
 				onGitMessageInput={gitCommands.typeMessage}
 				onGitWalkHistory={gitCommands.walkMessageHistory}
 				onGitCancelMessage={() => gitCommands.setMessageEditing(false)}
+				onGitCursorRow={gitCommands.focusChange}
+				onShowChanges={gitCommands.showChanges}
+				onCloseChanges={() => {
+					gitCommands.closeChanges();
+					setFocus('tree');
+				}}
+				onToggleStageSection={gitCommands.toggleStageSection}
+				onToggleDiffLayout={controls.toggleDiffView}
+				onLeaveGitPanel={() => setFocus('editor')}
 				onGitPush={gitCommands.push}
 				onGitSync={gitCommands.sync}
 				onGitBranchAction={gitCommands.openPanelBranchAction}

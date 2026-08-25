@@ -2,6 +2,10 @@ export interface UnifiedDiff {
 	patch: string;
 	adds: number;
 	dels: number;
+	/** Rows in `patch`, so a caller can budget screen space without splitting it. */
+	lines: number;
+	/** `patch` stops at `maxLines`; the rest of the change is not in it. */
+	truncated: boolean;
 }
 
 interface Edit {
@@ -105,7 +109,14 @@ function rewrite(n: number, m: number, oldBase: number, newBase: number): Edit[]
 	return edits;
 }
 
-export function unifiedDiff(rel: string, oldText: string, newText: string): UnifiedDiff {
+export function unifiedDiff(
+	rel: string,
+	oldText: string,
+	newText: string,
+	/** Rows the patch may use. A rewritten lockfile is otherwise one screenful per
+	 * thousand lines, which the stacked all-changes page would try to lay out. */
+	maxLines = Number.MAX_SAFE_INTEGER,
+): UnifiedDiff {
 	const oldLines = splitText(oldText);
 	const newLines = splitText(newText);
 	const edits = lineEdits(oldLines, newLines);
@@ -116,7 +127,7 @@ export function unifiedDiff(rel: string, oldText: string, newText: string): Unif
 		if (last && i - last.to <= CONTEXT * 2) last.to = i;
 		else hunks.push({ from: i, to: i });
 	}
-	if (hunks.length === 0) return { patch: '', adds: 0, dels: 0 };
+	if (hunks.length === 0) return { patch: '', adds: 0, dels: 0, lines: 0, truncated: false };
 
 	let adds = 0;
 	let dels = 0;
@@ -162,5 +173,9 @@ export function unifiedDiff(rel: string, oldText: string, newText: string): Unif
 			...body,
 		);
 	}
-	return { patch: `${out.join('\n')}\n`, adds, dels };
+	// Counted after the walk, not during it: `adds`/`dels` describe the whole
+	// change, and a caller that shows a cut patch still wants the real totals.
+	const truncated = out.length > maxLines;
+	const rows = truncated ? out.slice(0, maxLines) : out;
+	return { patch: `${rows.join('\n')}\n`, adds, dels, lines: rows.length, truncated };
 }
