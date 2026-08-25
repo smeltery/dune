@@ -67,6 +67,7 @@ export function useAppKeyboard(deps: {
 	toggleSidebar: () => void;
 	toggleGitPanel: () => void;
 	toggleReviewPanel: () => void;
+	togglePluginsPanel: () => void;
 	toggleMarkdown: () => void;
 	reviewNoteChooser: () => void;
 	reviewReply: () => void;
@@ -113,6 +114,7 @@ export function useAppKeyboard(deps: {
 		'view.markdown': deps.toggleMarkdown,
 		'git.sourceControl': deps.toggleGitPanel,
 		'view.review': deps.toggleReviewPanel,
+		'view.extensions': deps.togglePluginsPanel,
 		'review.note': deps.reviewNoteChooser,
 		'review.reply': deps.reviewReply,
 		'problems.list': deps.problemsList,
@@ -174,6 +176,8 @@ export function useAppKeyboard(deps: {
 			return claim(deps.toggleGitPanel);
 		if (key.ctrl && chord(key) && k === 'r' && !customizes('view.review'))
 			return claim(deps.toggleReviewPanel);
+		if (key.ctrl && chord(key) && k === 'x' && !customizes('view.extensions'))
+			return claim(deps.togglePluginsPanel);
 		if (key.ctrl && chord(key) && k === 'a' && !customizes('review.note'))
 			return claim(deps.reviewNoteChooser);
 		if (key.ctrl && chord(key) && k === 'i' && !customizes('problems.detail'))

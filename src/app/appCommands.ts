@@ -81,6 +81,7 @@ export function createAppCommands(deps: {
 	lspStatus: () => void;
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
+	pluginsOpen: () => void;
 	reviewFetch: () => void;
 	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
@@ -102,6 +103,7 @@ export function createAppCommands(deps: {
 		openCommitPicker: (variant?: 'plain' | 'push' | 'sync') => void;
 		promptAmend: () => void;
 		togglePanel: () => void;
+		sourceControl?: () => void;
 		openDiff: (path?: string | null) => void;
 		promptDiscard: (path: string, status?: FileStatus) => void;
 		openFileHistory: (path: string) => void;
@@ -302,6 +304,7 @@ export function createAppCommands(deps: {
 				completion: deps.completion.show,
 				goToDefinition: deps.completion.goToDefinition,
 				reviewOpen: deps.reviewOpen,
+				pluginsOpen: deps.pluginsOpen,
 				reviewFetch: deps.reviewFetch,
 				reviewNoteChooser: deps.reviewNoteChooser,
 				reviewNote: deps.reviewNote,
@@ -311,7 +314,7 @@ export function createAppCommands(deps: {
 				commitPush: () => deps.gitCommands.openCommitPicker('push'),
 				commitSync: () => deps.gitCommands.openCommitPicker('sync'),
 				commitAmend: deps.gitCommands.promptAmend,
-				sourceControl: deps.gitCommands.togglePanel,
+				sourceControl: deps.gitCommands.sourceControl ?? deps.gitCommands.togglePanel,
 				gitStage: deps.gitCommands.toggleStageActiveFile,
 				diffCurrent: () => deps.gitCommands.openDiff(deps.activePath()),
 				discardCurrent: () => {
