@@ -132,26 +132,25 @@ export function ComparePanel(props: ComparePanelProps) {
 					content={`base  ${cut(props.comparison?.base.name ?? 'loading…', room() - 6)}`}
 					onMouseDown={() => props.onOpenBase()}
 				/>
-				<text fg={ui.dim} bg={ui.panelBg} wrapMode="none" content={summary()} />
-				<box height={1} flexDirection="row" backgroundColor={ui.panelBg}>
-					<text
-						fg={ui.accent}
-						bg={ui.panelBg}
-						flexShrink={0}
-						wrapMode="none"
-						content={props.mode === 'files' ? '[Files]  Commits' : 'Files  [Commits]'}
-						onMouseDown={() => props.onToggleMode()}
-					/>
-					<Show when={props.filtering || props.filter}>
-						<text
-							fg={ui.faint}
-							bg={ui.panelBg}
-							flexShrink={1}
-							wrapMode="none"
-							content={` · filter ${props.filter}`}
-						/>
-					</Show>
-				</box>
+				{/* The filter takes this row rather than one of its own: the sidebar is
+            thirty columns, and a fourth header row is a row off the list. */}
+				<text
+					fg={props.filtering || props.filter ? ui.faint : ui.dim}
+					bg={ui.panelBg}
+					wrapMode="none"
+					content={
+						props.filtering || props.filter
+							? cut(`filter ${props.filter}`, room())
+							: summary()
+					}
+				/>
+				<text
+					fg={ui.accent}
+					bg={ui.panelBg}
+					wrapMode="none"
+					content={props.mode === 'files' ? '[Files]  Commits' : 'Files  [Commits]'}
+					onMouseDown={() => props.onToggleMode()}
+				/>
 			</box>
 			<Show
 				when={rows().length > 0}

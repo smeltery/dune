@@ -193,10 +193,7 @@ test('comparison preserves merge commits and all of their parents', async () => 
 	if (!result.ok) return;
 	const merge = result.value.commits.find((commit) => commit.subject === 'merge integration');
 	expect(merge?.parents).toHaveLength(2);
-	expect(result.value.files.map((file) => file.path)).toEqual([
-		'feature.txt',
-		'integration.txt',
-	]);
+	expect(result.value.files.map((file) => file.path)).toEqual(['feature.txt', 'integration.txt']);
 });
 
 test('comparison preserves paths that porcelain output would quote', async () => {

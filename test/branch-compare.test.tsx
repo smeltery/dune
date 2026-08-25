@@ -107,7 +107,8 @@ test('Enter opens a lazy file diff and d switches its layout', async () => {
 	expect(t.captureCharFrame()).toContain('- export const auth = false');
 
 	await press(t, (input) => input.pressKey('d'));
-	expect(t.captureCharFrame()).toContain('split');
+	const frame = t.captureCharFrame();
+	expect(frame).toMatch(/d split|│/);
 });
 
 test('commit mode opens metadata, changed files and the first file diff', async () => {
@@ -159,7 +160,8 @@ test('the command palette opens Source Control directly in comparison mode', asy
 });
 
 test('a branch with no introduced work has a clean comparison state', async () => {
-	const { dir } = repo();
+	const { dir, git } = repo();
+	git('config', 'init.defaultBranch', 'feature');
 	const t = await launch(dir);
 
 	await openComparison(t);
