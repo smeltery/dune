@@ -66,9 +66,13 @@ export function useAppKeyboard(deps: {
 	toggleExpand: (path: string) => void;
 	toggleSidebar: () => void;
 	toggleGitPanel: () => void;
+	toggleReviewPanel: () => void;
 	toggleMarkdown: () => void;
+	reviewNoteChooser: () => void;
+	reviewReply: () => void;
 	goToDefinition: () => void;
 	problemsList: () => void;
+	problemsAtCursor: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
 	problemsRestart: () => void;
@@ -103,7 +107,11 @@ export function useAppKeyboard(deps: {
 		'view.sidebar': deps.toggleSidebar,
 		'view.markdown': deps.toggleMarkdown,
 		'git.sourceControl': deps.toggleGitPanel,
+		'view.review': deps.toggleReviewPanel,
+		'review.note': deps.reviewNoteChooser,
+		'review.reply': deps.reviewReply,
 		'problems.list': deps.problemsList,
+		'problems.detail': deps.problemsAtCursor,
 		'problems.next': deps.problemsNext,
 		'problems.prev': deps.problemsPrev,
 		'problems.restart': deps.problemsRestart,
@@ -159,6 +167,12 @@ export function useAppKeyboard(deps: {
 			return claim(() => deps.setPicker('tabs'));
 		if (key.ctrl && chord(key) && k === 'g' && !customizes('git.sourceControl'))
 			return claim(deps.toggleGitPanel);
+		if (key.ctrl && chord(key) && k === 'r' && !customizes('view.review'))
+			return claim(deps.toggleReviewPanel);
+		if (key.ctrl && chord(key) && k === 'a' && !customizes('review.note'))
+			return claim(deps.reviewNoteChooser);
+		if (key.ctrl && chord(key) && k === 'i' && !customizes('problems.detail'))
+			return claim(deps.problemsAtCursor);
 		if (key.ctrl && k === 'g' && !customizes('goto'))
 			return claim(() => deps.setPrompt({ kind: 'gotoLine' }));
 		if (key.ctrl && k === 's' && !customizes('save')) return claim(deps.saveActive);

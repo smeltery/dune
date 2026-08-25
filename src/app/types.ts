@@ -72,6 +72,7 @@ export type Prompt =
 	| { kind: 'appearancePluginId' }
 	| { kind: 'appearancePluginRemoveId' }
 	| { kind: 'appearancePluginRegistry'; current: string }
+	| { kind: 'reviewKind'; path: string; line: number; endLine: number }
 	| { kind: 'reviewNote'; noteKind: NoteKind; path: string; line: number; endLine: number }
 	| { kind: 'reviewReply'; parentId: string }
 	| { kind: 'delete'; targets: string[] }

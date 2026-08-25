@@ -15,6 +15,7 @@ export function createEditorScrollMetrics(
 	viewport: () => { top: number; height: number; total: number },
 	lineCount: () => number,
 	lineAtRow: (row: number) => number,
+	scrollPastEnd: () => boolean,
 ) {
 	const scrollMetrics = createMemo(() => {
 		const measured = viewport();
@@ -27,7 +28,8 @@ export function createEditorScrollMetrics(
 	const scrollbar = createMemo(() => {
 		const m = scrollMetrics();
 		if (!m) return [];
-		const at = Math.min(m.span, Math.round((m.top / (m.total - m.height)) * m.span));
+		const last = scrollPastEnd() ? m.total - 1 : m.total - m.height;
+		const at = Math.min(m.span, Math.round((m.top / Math.max(1, last)) * m.span));
 		return Array.from({ length: m.height }, (_, row) => row >= at && row < at + m.size);
 	});
 	return { scrollbar, scrollMetrics };

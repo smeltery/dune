@@ -38,6 +38,14 @@ export const NOTE_LABELS: Record<NoteKind, string> = {
 	note: 'NOTE',
 };
 
+/** Kinds as the chooser lists them, with what each one means to an agent. */
+export const KIND_CHOICES: { id: NoteKind; label: string }[] = [
+	{ id: 'issue', label: 'Issue — this is wrong and needs fixing' },
+	{ id: 'suggestion', label: 'Suggestion — consider changing this' },
+	{ id: 'question', label: 'Question — explain this' },
+	{ id: 'note', label: 'Note — context worth carrying' },
+];
+
 export interface ReviewNote {
 	/** Stable across a rewrite of the list — what a delete addresses. */
 	id: string;

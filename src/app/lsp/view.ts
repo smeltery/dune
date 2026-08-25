@@ -60,14 +60,22 @@ export function problemChoices(rootDir: string, rows: readonly ProblemChoice[]):
 	}));
 }
 
+export type ProblemsScope = 'all' | 'cursor';
+
+export function problemsOn(list: readonly Problem[], line: number): Problem[] {
+	return list
+		.filter((problem) => problem.line === line)
+		.toSorted((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || a.col - b.col);
+}
+
 export function createProblemUi(deps: {
 	rootDir: string;
 	problems: Record<string, Problem[]>;
 	tabs: Accessor<string[]>;
 	activePath: Accessor<string | null>;
 	cursor: Accessor<{ line: number; col: number }>;
-	problemsOpen: Accessor<boolean>;
-	setProblemsOpen: Setter<boolean>;
+	problemsOpen: Accessor<ProblemsScope | false>;
+	setProblemsOpen: Setter<ProblemsScope | false>;
 	setGoto: Setter<{ line: number; col: number; key: number } | null>;
 	setFocus: Setter<Focus>;
 	openFile: (path: string) => void;
@@ -80,6 +88,19 @@ export function createProblemUi(deps: {
 	) => Problem | null;
 }) {
 	const rows = createMemo(() => openProblemRows(deps.tabs(), deps.problems));
+	const scopedRows = createMemo(() => {
+		if (deps.problemsOpen() !== 'cursor') return rows();
+		const path = deps.activePath();
+		const list = path ? deps.problems[path] : undefined;
+		if (!list) return [];
+		return problemsOn(list, deps.cursor().line).map((problem) => ({
+			path: path!,
+			line: problem.line,
+			col: problem.col,
+			severity: problem.severity,
+			message: problem.message,
+		}));
+	});
 	const lines = createMemo(() => {
 		const path = deps.activePath();
 		return activeProblemLines(path ? deps.problems[path] : undefined);
@@ -88,10 +109,10 @@ export function createProblemUi(deps: {
 		const path = deps.activePath();
 		return problemCounts(path ? deps.problems[path] : undefined);
 	});
-	const choices = createMemo(() => problemChoices(deps.rootDir, rows()));
+	const choices = createMemo(() => problemChoices(deps.rootDir, scopedRows()));
 
 	createEffect(() => {
-		if (deps.problemsOpen() && rows().length === 0) deps.setProblemsOpen(false);
+		if (deps.problemsOpen() && scopedRows().length === 0) deps.setProblemsOpen(false);
 	});
 
 	const jumpTo = (problem: ProblemChoice) => {
@@ -102,7 +123,15 @@ export function createProblemUi(deps: {
 	};
 	const list = () => {
 		if (rows().length === 0) return deps.say('No problems');
-		deps.setProblemsOpen(true);
+		deps.setProblemsOpen('all');
+	};
+	const atCursor = () => {
+		const path = deps.activePath();
+		const fileProblems = path ? deps.problems[path] : undefined;
+		if (!fileProblems || problemsOn(fileProblems, deps.cursor().line).length === 0) {
+			return deps.say('No problem on this line');
+		}
+		deps.setProblemsOpen('cursor');
 	};
 	const next = (direction: 1 | -1) => {
 		const path = deps.activePath();
@@ -118,5 +147,5 @@ export function createProblemUi(deps: {
 		if (problem) jumpTo(problem);
 	};
 
-	return { lines, counts, choices, list, next, pick };
+	return { lines, counts, choices, scope: deps.problemsOpen, list, atCursor, next, pick };
 }

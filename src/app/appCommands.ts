@@ -73,6 +73,7 @@ export function createAppCommands(deps: {
 	toggleAutoSave: () => void;
 	toggleTransparent: () => void;
 	problemsList: () => void;
+	problemsAtCursor: () => void;
 	problemsNext: () => void;
 	problemsPrev: () => void;
 	problemsRestart: () => void;
@@ -80,7 +81,9 @@ export function createAppCommands(deps: {
 	completion: { show: () => void; goToDefinition: () => void };
 	reviewOpen: () => void;
 	reviewFetch: () => void;
+	reviewNoteChooser: () => void;
 	reviewNote: (kind: import('../core/review').NoteKind) => void;
+	reviewReply: () => void;
 	reviewClear: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
@@ -286,6 +289,7 @@ export function createAppCommands(deps: {
 				toggleTransparent: deps.toggleTransparent,
 				reloadAppearancePlugins: deps.reloadAppearancePlugins,
 				problemsList: deps.problemsList,
+				problemsAtCursor: deps.problemsAtCursor,
 				problemsNext: deps.problemsNext,
 				problemsPrev: deps.problemsPrev,
 				problemsRestart: deps.problemsRestart,
@@ -294,7 +298,9 @@ export function createAppCommands(deps: {
 				goToDefinition: deps.completion.goToDefinition,
 				reviewOpen: deps.reviewOpen,
 				reviewFetch: deps.reviewFetch,
+				reviewNoteChooser: deps.reviewNoteChooser,
 				reviewNote: deps.reviewNote,
+				reviewReply: deps.reviewReply,
 				reviewClear: deps.reviewClear,
 				commit: deps.gitCommands.openCommitPicker,
 				commitPush: () => deps.gitCommands.openCommitPicker('push'),

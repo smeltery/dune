@@ -18,7 +18,7 @@ import { fetchComments, findPullRequest, forgeFor } from '../core/forge';
 import type { ForgeComment, PullRequest } from '../core/forge';
 import { remoteUrl } from '../core/git';
 import { loadNotes, NOTE_LABELS, readNotes, rootIdOf, saveNotes } from '../core/review';
-import type { NoteKind, ReviewNote } from '../core/review';
+import type { ReviewNote } from '../core/review';
 import type { Tone } from '../ui/StatusBar';
 import type { Prompt } from './types';
 
@@ -59,6 +59,7 @@ export function createReview(deps: {
 	rootDir: string;
 	config: Config;
 	activePath: () => string | null;
+	activeLine: () => number;
 	activeRepo: () => string | null;
 	branch: () => string | null;
 	openFile: (path: string, preview?: boolean) => void;
@@ -79,6 +80,7 @@ export function createReview(deps: {
 		rootDir,
 		config,
 		activePath,
+		activeLine,
 		activeRepo,
 		branch,
 		openFile,
@@ -411,10 +413,28 @@ export function createReview(deps: {
 
 	/** r: answer the remark under the cursor. Only a draft note has a thread to join. */
 	const promptReply = () => {
-		const current = row();
-		if (current?.kind === 'comment') return say('That comment is on the forge, not here', 'warn');
-		if (current?.kind !== 'note') return say('Select a note first', 'warn');
-		setPrompt({ kind: 'reviewReply', parentId: current.note.id });
+		const parent = replyTarget();
+		if (!parent) return;
+		setPrompt({ kind: 'reviewReply', parentId: parent.id });
+	};
+
+	/**
+	 * The draft note a reply would answer — the panel row under the cursor, or the
+	 * note on the editor line when the panel is closed. A reply to a reply still
+	 * points at the thread root.
+	 */
+	const replyTarget = (): ReviewNote | null => {
+		const path = activePath();
+		if (path) {
+			const onLine = rootsFor(path).find((note) => note.line === activeLine());
+			if (onLine) return onLine;
+		}
+		const remark = remarkOf();
+		if (!remark || !('kind' in remark)) {
+			say('Put the cursor on a remark to answer it', 'warn');
+			return null;
+		}
+		return (remark.parent && notes().find((held) => held.id === remark.parent)) || remark;
 	};
 
 	/**
@@ -504,6 +524,7 @@ export function createReview(deps: {
 		collapseAll,
 		remove,
 		promptReply,
+		replyTarget,
 		add,
 		reply,
 		removeNote,
@@ -517,11 +538,3 @@ export function createReview(deps: {
 }
 
 export type Review = ReturnType<typeof createReview>;
-
-/** Kinds as the chooser lists them, with what each one means to an agent. */
-export const KIND_CHOICES: { id: NoteKind; label: string }[] = [
-	{ id: 'issue', label: 'Issue — this is wrong and needs fixing' },
-	{ id: 'suggestion', label: 'Suggestion — consider changing this' },
-	{ id: 'question', label: 'Question — explain this' },
-	{ id: 'note', label: 'Note — context worth carrying' },
-];
