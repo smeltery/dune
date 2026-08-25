@@ -68,6 +68,8 @@ export interface CommandActions {
 	toggleGitignored: () => void;
 	toggleMarkdown: () => void;
 	toggleWrap: () => void;
+	toggleSidebarPosition: () => void;
+	toggleDiffView: () => void;
 	openSettings: () => void;
 	openProjectSettings: () => void;
 	openAppearancePlugins: () => void;
@@ -293,6 +295,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'view.wrap',
 					label: `${check(ctx.wrap)}Word wrap`,
 					run: actions.toggleWrap,
+				},
+				{
+					id: 'view.sidebarPosition',
+					label: 'Toggle sidebar position',
+					run: actions.toggleSidebarPosition,
 				},
 				{
 					id: 'view.dotfiles',
@@ -593,6 +600,11 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{ id: 'git.discardCurrent', label: 'Discard changes', run: actions.discardCurrent },
 				{ id: 'git.fileHistory', label: 'File history…', run: actions.fileHistory },
 				{ id: 'git.diffAll', label: 'Diff all changes', run: actions.diffAll },
+				{
+					id: 'git.diffLayout',
+					label: 'Toggle diff layout (inline / side-by-side)',
+					run: actions.toggleDiffView,
+				},
 				{
 					id: 'git.compareAgainstBranch',
 					label: 'Compare against branch…',

@@ -68,6 +68,8 @@ export function createAppCommandTree(deps: {
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleWrap: () => void;
+		toggleSidebarPosition: () => void;
+		toggleDiffView: () => void;
 		toggleTrim: () => void;
 		toggleFormat: () => void;
 		toggleAutoSave: () => void;
@@ -137,6 +139,8 @@ export function createAppCommandTree(deps: {
 		collapseSidebar: deps.collapseSidebar,
 		toggleMarkdown: deps.toggleMarkdown,
 		toggleWrap: deps.controls.toggleWrap,
+		toggleSidebarPosition: deps.controls.toggleSidebarPosition,
+		toggleDiffView: deps.controls.toggleDiffView,
 		applyVim: deps.controls.applyVim,
 		applyTabSize: deps.controls.applyTabSize,
 		applyTheme: deps.controls.applyTheme,
