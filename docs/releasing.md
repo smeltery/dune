@@ -21,7 +21,7 @@ sequenceDiagram
   Build-->>Actions: upload artifacts
   Actions->>Release: create/reuse v<version> release
   Actions->>Release: upload binary archives
-  Actions->>Packages: publish @dotbrains/dune shim
+  Actions->>Packages: publish @smeltery/dune shim
   Actions->>Tap: copy dune.rb when TAP_TOKEN is set
 ```
 
@@ -34,7 +34,7 @@ sequenceDiagram
 | `check`   | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs.                           |
 | `build`   | Builds native binaries on host runners that match the target platform family and uploads artifacts.                                                     |
 | `publish` | Downloads artifacts, normalizes the `dist/` layout, creates or reuses the GitHub release, uploads binaries and Homebrew assets, then publishes package. |
-| `tap`     | Copies the release's generated `dune.rb` into `dotbrains/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is configured.                             |
+| `tap`     | Copies the release's generated `dune.rb` into `smeltery/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is configured.                             |
 
 ## Platform Matrix
 
@@ -84,7 +84,7 @@ Before starting a release:
 2. Confirm `package.json` has the intended version.
 3. Confirm `CHANGELOG` or release notes source is ready if one is being maintained.
 4. Confirm the workflow still has `packages: write` permission.
-5. Confirm `TAP_TOKEN` is configured if this release should update `dotbrains/homebrew-tap`.
+5. Confirm `TAP_TOKEN` is configured if this release should update `smeltery/homebrew-tap`.
 6. Confirm the license is still the intended PolyForm Shield license text.
 
 Trigger release by either pushing the matching tag or using `workflow_dispatch`.
@@ -118,11 +118,11 @@ Use `bun run release` locally only when inspecting the staged release output. Pu
 | One platform build fails                            | Fix the target-specific build issue and re-run the workflow.                              |
 | Release upload fails                                | Re-run after confirming the tag exists and `contents: write` permission is available.     |
 | Package publish fails before a package is published | Fix GitHub Packages permissions and re-run.                                               |
-| Tap publish is skipped                              | Add `TAP_TOKEN`, or copy `dune.rb` from the release to `dotbrains/homebrew-tap` by hand.  |
+| Tap publish is skipped                              | Add `TAP_TOKEN`, or copy `dune.rb` from the release to `smeltery/homebrew-tap` by hand.  |
 | Package version already exists                      | Treat the package version as immutable; bump version for any content change.              |
 
 If GitHub release assets were uploaded but package publication failed, do not delete or move the tag unless the version was never meant to ship. Fix GitHub Packages publication and re-run the same workflow so the package points at the already-correct release assets.
 
 ## License
 
-The repository uses the same license text as `dotbrains/hab`: PolyForm Shield License 1.0.0 with copyright assigned to dotbrains. Release artifacts and package metadata must continue to identify the package as `PolyForm-Shield-1.0.0`.
+The repository uses the same license text as `smeltery/hab`: PolyForm Shield License 1.0.0 with copyright assigned to smeltery. Release artifacts and package metadata must continue to identify the package as `PolyForm-Shield-1.0.0`.

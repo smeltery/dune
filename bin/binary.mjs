@@ -69,7 +69,7 @@ const assetFor = (baseline) =>
 	`dune-${target}${baseline ? '-baseline' : ''}.${platform === 'linux' ? 'tar.gz' : 'zip'}`;
 const repo =
 	pkg.repository?.url?.replace(/^git\+/, '').replace(/\.git$/, '') ??
-	'https://github.com/dotbrains/dune';
+	'https://github.com/smeltery/dune';
 /** `DUNE_DOWNLOAD_BASE` points the fetch at a mirror, for networks that cannot reach GitHub. */
 const base = process.env.DUNE_DOWNLOAD_BASE ?? `${repo}/releases/download/v${version}`;
 

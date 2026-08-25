@@ -13,7 +13,7 @@ build.ts             compiles a standalone binary per platform (Bun.build + Soli
 bin/dune.js          npm launcher: runs the binary, fetching it first if it is missing
 bin/binary.mjs       finds or downloads the platform binary from the GitHub release
 bin/postinstall.mjs  fetches it at install time, so the first run does not have to
-install              curl | bash installer, served at dune.dotbrains.dev/install
+install              curl | bash installer, served at dune.smeltery.dev/install
 scripts/
   release.ts         stages the npm package + release archives from dist/
   formula.ts         Homebrew formula for the current version's archives

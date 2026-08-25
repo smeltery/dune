@@ -1,6 +1,6 @@
 # dune
 
-[![CI](https://github.com/dotbrains/dune/actions/workflows/ci.yml/badge.svg)](https://github.com/dotbrains/dune/actions/workflows/ci.yml)
+[![CI](https://github.com/smeltery/dune/actions/workflows/ci.yml/badge.svg)](https://github.com/smeltery/dune/actions/workflows/ci.yml)
 [![License: PolyForm Shield 1.0.0](https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-blue.svg)](LICENSE)
 [![Platform: macOS + Linux + Windows](https://img.shields.io/badge/platform-macOS%20%2B%20Linux%20%2B%20Windows-lightgrey.svg)](docs/releasing.md)
 [![TypeScript: strict](https://img.shields.io/badge/typescript-strict-3178c6.svg)](tsconfig.json)
@@ -49,15 +49,15 @@ bun run check
 Install from a release script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dotbrains/dune/main/install | bash
+curl -fsSL https://raw.githubusercontent.com/smeltery/dune/main/install | bash
 ```
 
 Or install the GitHub Packages shim after configuring npm for the GitHub registry:
 
 ```bash
-npm config set @dotbrains:registry https://npm.pkg.github.com
-npm install -g @dotbrains/dune
-bun add -g @dotbrains/dune
+npm config set @smeltery:registry https://npm.pkg.github.com
+npm install -g @smeltery/dune
+bun add -g @smeltery/dune
 ```
 
 The shim downloads the matching binary from the GitHub release. Set `DUNE_DOWNLOAD_BASE`
@@ -74,7 +74,7 @@ dune src/main.ts:42:7 # open at line 42, column 7
 dune update           # upgrade this installation
 ```
 
-`npx @dotbrains/dune` and `bunx @dotbrains/dune` work once the package is published.
+`npx @smeltery/dune` and `bunx @smeltery/dune` work once the package is published.
 
 ## Shortcuts
 

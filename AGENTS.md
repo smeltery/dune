@@ -97,7 +97,7 @@ to break:
   on Linux and a `--version` probe fallback everywhere else; the install script uses
   `/proc/cpuinfo` when available. `DUNE_CPU_BASELINE=1/0` overrides both.
 - **The GitHub release is uploaded before GitHub Packages.** One package is published,
-  `@dotbrains/dune`, and it holds no binary: `bin/binary.mjs` fetches the archive for the
+  `@smeltery/dune`, and it holds no binary: `bin/binary.mjs` fetches the archive for the
   machine from the release. Publishing the package first would leave a window where an
   install finds no asset.
 - **Install-time binary downloads are bounded.** The package is allowed to fail silently
@@ -141,7 +141,7 @@ assets.
 `scripts/formula.ts` generates a working Homebrew formula and bottle archives from
 `dist/release/` plus the binaries in `dist/<target>/`; the release workflow uploads them
 as release assets, then its `tap` job copies `dune.rb` to
-`dotbrains/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is set. That secret is a
+`smeltery/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is set. That secret is a
 fine-grained PAT with contents:write on the tap repository. Without it, the release still
 ships and the workflow emits a notice; Homebrew is left at the previous tap formula until
 someone copies the release asset by hand.

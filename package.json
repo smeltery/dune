@@ -1,5 +1,5 @@
 {
-	"name": "@dotbrains/dune",
+	"name": "@smeltery/dune",
 	"displayName": "Dune",
 	"version": "1.0.0",
 	"private": true,
@@ -16,15 +16,15 @@
 		"tree-sitter",
 		"tui"
 	],
-	"homepage": "https://github.com/dotbrains/dune",
+	"homepage": "https://github.com/smeltery/dune",
 	"bugs": {
-		"url": "https://github.com/dotbrains/dune/issues"
+		"url": "https://github.com/smeltery/dune/issues"
 	},
 	"license": "PolyForm-Shield-1.0.0",
-	"author": "dotbrains",
+	"author": "smeltery",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/dotbrains/dune.git"
+		"url": "git+https://github.com/smeltery/dune.git"
 	},
 	"bin": {
 		"dune": "./bin/dune.js"

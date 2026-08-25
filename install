@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Installs dune into ~/.dune/bin. Served at https://dune.dotbrains.dev/install:
-#   curl -fsSL https://dune.dotbrains.dev/install | bash
+# Installs dune into ~/.dune/bin. Served at https://dune.smeltery.dev/install:
+#   curl -fsSL https://dune.smeltery.dev/install | bash
 set -euo pipefail
 
 APP=dune
-REPO=dotbrains/dune
+REPO=smeltery/dune
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -24,8 +24,8 @@ Options:
         --no-modify-path    Don't touch shell config files (.zshrc, .bashrc, …)
 
 Examples:
-    curl -fsSL https://dune.dotbrains.dev/install | bash
-    curl -fsSL https://dune.dotbrains.dev/install | bash -s -- --version 0.2.0
+    curl -fsSL https://dune.smeltery.dev/install | bash
+    curl -fsSL https://dune.smeltery.dev/install | bash -s -- --version 0.2.0
 EOF
 }
 

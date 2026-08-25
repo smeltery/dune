@@ -10,7 +10,7 @@ import { isNewer } from '../update';
 import { isThemeName } from '../../themes';
 import type { Config } from '../config';
 
-export const MARKET_URL = 'https://dune.dotbrains.dev/plugins/';
+export const MARKET_URL = 'https://dune.smeltery.dev/plugins/';
 export const CATALOG_MAX_AGE_MS = 30 * 60 * 1000;
 
 const TIMEOUT_MS = 2500;

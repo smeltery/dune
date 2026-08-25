@@ -55,8 +55,8 @@ export function detectInstall(
 
 /** The shell command that upgrades this install, ready to print and to run. */
 export function upgradeCommand(install: Install): string {
-	if (install.kind === 'brew') return 'brew upgrade dotbrains/tap/dune';
-	if (install.kind === 'script') return 'curl -fsSL https://dune.dotbrains.dev/install | bash';
+	if (install.kind === 'brew') return 'brew upgrade smeltery/tap/dune';
+	if (install.kind === 'script') return 'curl -fsSL https://dune.smeltery.dev/install | bash';
 	return addDependencyCommand(install.manager ?? 'npm', 'dune@latest', { global: true });
 }
 

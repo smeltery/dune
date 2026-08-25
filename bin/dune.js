@@ -26,9 +26,9 @@ if (!binary) {
 if (!binary) {
 	process.stderr.write(
 		`dune: could not fetch the ${target} binary for ${version}.\n` +
-			`Download dune-${target} from https://github.com/dotbrains/dune/releases/tag/v${version}\n` +
+			`Download dune-${target} from https://github.com/smeltery/dune/releases/tag/v${version}\n` +
 			`and put it on your PATH as ${exe}, or install with:\n` +
-			`  curl -fsSL https://dune.dotbrains.dev/install | bash\n`,
+			`  curl -fsSL https://dune.smeltery.dev/install | bash\n`,
 	);
 	process.exit(1);
 }

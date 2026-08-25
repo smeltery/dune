@@ -166,7 +166,7 @@ export const DEFAULTS: Config = {
 	typescriptTsdk: '',
 	lspServers: {},
 	keybindings: {},
-	pluginRegistry: 'https://dune.dotbrains.dev/plugins/',
+	pluginRegistry: 'https://dune.smeltery.dev/plugins/',
 	pluginUpdates: true,
 	disabledAppearancePlugins: [],
 	tooltips: true,

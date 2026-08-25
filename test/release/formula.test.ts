@@ -36,7 +36,7 @@ test('the formula pours bottles for every Homebrew target', () => {
 	};
 	const formula = readFileSync(join(dist, 'release/dune.rb'), 'utf8');
 	expect(formula).toContain(
-		`root_url "https://github.com/dotbrains/dune/releases/download/v${version}"`,
+		`root_url "https://github.com/smeltery/dune/releases/download/v${version}"`,
 	);
 
 	for (const tag of TAGS) {

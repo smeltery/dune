@@ -5,7 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 
 import './styles.css';
 
-const GITHUB = 'https://github.com/dotbrains/dune';
+const GITHUB = 'https://github.com/smeltery/dune';
 
 function copyText(text: string): Promise<void> {
 	const legacy = () => {
@@ -296,16 +296,16 @@ function App() {
 					<span className="comment"># install - click a line to copy it</span>
 				</p>
 				<div className="output">
-					<Command text="curl -fsSL https://dune.dotbrains.dev/install | bash" />
-					<Command text="brew install dotbrains/tap/dune" />
-					<Command text="npm install -g @dotbrains/dune" />
+					<Command text="curl -fsSL https://dune.smeltery.dev/install | bash" />
+					<Command text="brew install smeltery/tap/dune" />
+					<Command text="npm install -g @smeltery/dune" />
 					<Command text="dune update" note="upgrade this copy" />
 				</div>
 			</section>
 
 			<footer className="section">
 				<p className="shell-line">
-					<span className="prompt-sign">$</span> open <a href={GITHUB}>github.com/dotbrains/dune</a>
+					<span className="prompt-sign">$</span> open <a href={GITHUB}>github.com/smeltery/dune</a>
 					<span className="comment"> # source and issues</span>
 					<span className="caret footer-caret" />
 				</p>

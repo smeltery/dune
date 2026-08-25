@@ -27,7 +27,7 @@ describe('flags', () => {
 describe('update instructions', () => {
 	test('name the installer that put this copy there', () => {
 		expect(updateCommand('/opt/homebrew/Cellar/dune/0.2.0/bin/dune')).toContain('brew');
-		expect(updateCommand('/home/me/.dune/bin/dune', '/home/me')).toContain('dune.dotbrains.dev');
+		expect(updateCommand('/home/me/.dune/bin/dune', '/home/me')).toContain('dune.smeltery.dev');
 		expect(updateCommand('/usr/local/lib/node_modules/dune/bin/dune.js', '/home/me')).toContain(
 			'npm',
 		);

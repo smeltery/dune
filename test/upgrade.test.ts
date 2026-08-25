@@ -41,7 +41,7 @@ describe('working out how dune was installed', () => {
 
 describe('the command each install is upgraded with', () => {
 	test('brew upgrades the tap formula', () => {
-		expect(upgradeCommand({ kind: 'brew' })).toBe('brew upgrade dotbrains/tap/dune');
+		expect(upgradeCommand({ kind: 'brew' })).toBe('brew upgrade smeltery/tap/dune');
 	});
 
 	test('the script install re-runs the installer', () => {

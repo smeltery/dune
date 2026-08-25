@@ -101,7 +101,7 @@ jobs:
         with:
           node-version: latest
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@dotbrains'
+          scope: '@smeltery'
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v8
         with:
@@ -147,8 +147,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
 
-  # Homebrew installs come from dotbrains/homebrew-tap, where Formula/dune.rb is the
-  # source of truth for `brew install dotbrains/tap/dune`. This job copies the formula
+  # Homebrew installs come from smeltery/homebrew-tap, where Formula/dune.rb is the
+  # source of truth for `brew install smeltery/tap/dune`. This job copies the formula
   # that was already generated and uploaded with the release, so it stays checksummed
   # against the archives and bottle assets users will download.
   #
@@ -168,7 +168,7 @@ jobs:
         if: env.TAP_TOKEN != ''
         uses: actions/checkout@v7
         with:
-          repository: dotbrains/homebrew-tap
+          repository: smeltery/homebrew-tap
           token: ${{ secrets.TAP_TOKEN }}
       - name: Update Formula/dune.rb
         if: env.TAP_TOKEN != ''
@@ -192,4 +192,4 @@ jobs:
         run: |
           echo "::notice::TAP_TOKEN is not set — skipping the Homebrew tap update." \
             "dune.rb is attached to release $VERSION and can be copied to" \
-            "dotbrains/homebrew-tap as Formula/dune.rb by hand."
+            "smeltery/homebrew-tap as Formula/dune.rb by hand."
