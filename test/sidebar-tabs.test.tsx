@@ -12,8 +12,6 @@ import type { Harness } from './helpers';
 const TABS_ROW = 1;
 const FILES_X = 2;
 const GIT_X = 10;
-const REVIEW_X = 16;
-const PLUGINS_X = 25;
 const WIDE_SIDEBAR = { sidebarWidth: 40 as const };
 
 interface Span {

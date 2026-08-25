@@ -14,7 +14,11 @@
 			"reason": "Core keeps IO primitives discoverable by domain, including git, forge, review, search, config, and filesystem modules."
 		},
 		"src/ui": {
+<<<<<<< HEAD
 			"limit": 37,
+=======
+			"limit": 35,
+>>>>>>> 7963c8d (feat: sidebar tab strip and Shift+Tab view walking (druk gap))
 			"reason": "Top-level UI keeps shared controls discoverable; larger feature overlays live in src/ui/overlays."
 		},
 		"src/themes": {

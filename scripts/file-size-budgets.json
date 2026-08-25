@@ -1,8 +1,13 @@
 {
 	"default_lines": 500,
 	"files": {
+<<<<<<< HEAD
 		"src/app/App.tsx": 900,
 		"src/app/AppView.tsx": 680,
+=======
+		"src/app/App.tsx": 870,
+		"src/app/AppView.tsx": 650,
+>>>>>>> 7963c8d (feat: sidebar tab strip and Shift+Tab view walking (druk gap))
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 675,
 		"src/app/documentActions.ts": 655,
