@@ -202,6 +202,13 @@ export function settingsRows(
 		},
 		{
 			section: 'Editor',
+			label: 'Inline review notes',
+			value: onOff(config.reviewInline),
+			change: () =>
+				actions.patchConfig({ reviewInline: !config.reviewInline }, actions.configScope()),
+		},
+		{
+			section: 'Editor',
 			label: 'Offer to install servers',
 			value: onOff(config.lspAutoInstall),
 			change: () =>

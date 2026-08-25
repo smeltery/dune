@@ -86,6 +86,7 @@ interface AppViewProps {
 	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	reviews: Map<number, { draft: boolean; label: string; text: string }>;
 	problemCounts: { errors: number; warnings: number };
 	problemChoices: Choice[];
 	problemsOpen: ProblemsScope | false;
@@ -352,6 +353,8 @@ export function AppView(props: AppViewProps) {
 									gitLines={props.gitLines}
 									problems={props.problems}
 									problemText={props.config.lspInline}
+									reviews={props.reviews}
+									reviewText={props.config.reviewInline}
 									notice={props.notice}
 									blocked={props.blocked}
 									onChange={props.onEditorChange}

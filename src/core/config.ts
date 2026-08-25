@@ -109,6 +109,8 @@ export interface Config {
 	reviewForge: ForgeSetting;
 	/** Fetch pull request comments quietly when the review panel opens. */
 	reviewAutoFetch: boolean;
+	/** Draw a review note's text after the end of its line, as `lspInline` does. */
+	reviewInline: boolean;
 	/** Language servers: spawn matching servers as files open. */
 	lsp: boolean;
 	/** Completion menu while typing. Requires `lsp` to be enabled. */
@@ -162,6 +164,7 @@ export const DEFAULTS: Config = {
 	reviewRemote: 'origin',
 	reviewForge: 'auto',
 	reviewAutoFetch: true,
+	reviewInline: true,
 	lsp: false,
 	lspCompletion: true,
 	lspInline: true,
@@ -234,6 +237,7 @@ function parsePartial(raw: unknown): Partial<Config> {
 		config.reviewForge = obj.reviewForge as ForgeSetting;
 	}
 	if (typeof obj.reviewAutoFetch === 'boolean') config.reviewAutoFetch = obj.reviewAutoFetch;
+	if (typeof obj.reviewInline === 'boolean') config.reviewInline = obj.reviewInline;
 	if (typeof obj.lsp === 'boolean') config.lsp = obj.lsp;
 	if (typeof obj.lspCompletion === 'boolean') config.lspCompletion = obj.lspCompletion;
 	if (typeof obj.lspInline === 'boolean') config.lspInline = obj.lspInline;
