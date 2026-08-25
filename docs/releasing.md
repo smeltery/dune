@@ -34,7 +34,7 @@ sequenceDiagram
 | `check`   | Reads `package.json`, validates the tag when the workflow was triggered by a tag push, and exposes the version to later jobs.                           |
 | `build`   | Builds native binaries on host runners that match the target platform family and uploads artifacts.                                                     |
 | `publish` | Downloads artifacts, normalizes the `dist/` layout, creates or reuses the GitHub release, uploads binaries and Homebrew assets, then publishes package. |
-| `tap`     | Copies the release's generated `dune.rb` into `smeltery/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is configured.                              |
+| `tap`     | Copies the release's generated `dune.rb` into `smeltery/homebrew-tap` as `Formula/dune.rb` when `TAP_TOKEN` is configured.                             |
 
 ## Platform Matrix
 
@@ -118,7 +118,7 @@ Use `bun run release` locally only when inspecting the staged release output. Pu
 | One platform build fails                            | Fix the target-specific build issue and re-run the workflow.                              |
 | Release upload fails                                | Re-run after confirming the tag exists and `contents: write` permission is available.     |
 | Package publish fails before a package is published | Fix GitHub Packages permissions and re-run.                                               |
-| Tap publish is skipped                              | Add `TAP_TOKEN`, or copy `dune.rb` from the release to `smeltery/homebrew-tap` by hand.   |
+| Tap publish is skipped                              | Add `TAP_TOKEN`, or copy `dune.rb` from the release to `smeltery/homebrew-tap` by hand.  |
 | Package version already exists                      | Treat the package version as immutable; bump version for any content change.              |
 
 If GitHub release assets were uploaded but package publication failed, do not delete or move the tag unless the version was never meant to ship. Fix GitHub Packages publication and re-run the same workflow so the package points at the already-correct release assets.
