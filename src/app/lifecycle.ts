@@ -24,7 +24,7 @@ import { watchAppearance } from '../core/appearance';
 import { installedMarketPlugins } from './appearance/pluginsPage';
 import { clashWarning } from './clashes';
 import { CLASH_CHANGED, CLASH_DELETED, READY } from './constants';
-import type { AppProps, BufferState, DiskSync } from './types';
+import type { AppProps, BufferState, DiskSync, Prompt } from './types';
 
 export function startupOpen(props: Pick<AppProps, 'openFile' | 'openLine' | 'openCol'>): {
 	single: string | null;
@@ -69,6 +69,7 @@ export function useAppLifecycle(deps: {
 	dependenciesChanged: () => void;
 	reloadNotes: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	setPrompt: (prompt: Prompt) => void;
 	setGitRevision: (update: (n: number) => number) => void;
 	setGitLines: (lines: Map<number, LineChange>) => void;
 	setGitStatus: (status: Map<string, FileStatus>) => void;
@@ -116,7 +117,12 @@ export function useAppLifecycle(deps: {
 				);
 				if (missing.length === 1) {
 					const plugin = missing[0]!;
-					deps.say(`Install ${plugin.name} for configured appearance ${plugin.id}`, 'info');
+					deps.setPrompt({
+						kind: 'installPlugin',
+						id: plugin.id,
+						name: plugin.name,
+						reason: `Configured appearance needs ${plugin.id}`,
+					});
 					return;
 				}
 				if (missing.length > 1) {
@@ -129,7 +135,12 @@ export function useAppLifecycle(deps: {
 				);
 				if (updates.length === 1) {
 					const plugin = updates[0]!;
-					deps.say(`${plugin.name} ${plugin.version} is available`, 'info');
+					deps.setPrompt({
+						kind: 'installPlugin',
+						id: plugin.id,
+						name: plugin.name,
+						reason: `${plugin.name} ${plugin.version} is available`,
+					});
 				} else if (updates.length > 1) {
 					deps.say(`${updates.length} plugin updates available`, 'info');
 				}

@@ -29,6 +29,7 @@ export type PluginRow =
 			update: string | null;
 			disabled: boolean;
 			about: string;
+			categories: string[];
 	  }
 	| {
 			kind: 'available';
@@ -36,6 +37,7 @@ export type PluginRow =
 			label: string;
 			version: string;
 			about: string;
+			categories: string[];
 	  }
 	| { kind: 'note'; id: string; label: string };
 
@@ -74,6 +76,7 @@ export function createPluginsPanel(deps: {
 			.appearance()
 			.plugins.map((plugin) => {
 				const latest = cached.find((entry) => entry.id === plugin.id);
+				const categories = latest?.categories ?? [];
 				return {
 					kind: 'installed' as const,
 					id: plugin.id,
@@ -82,9 +85,10 @@ export function createPluginsPanel(deps: {
 					update: latest && isNewer(latest.version, plugin.version) ? latest.version : null,
 					disabled: plugin.disabled,
 					about: plugin.detail,
+					categories,
 				};
 			})
-			.filter((row) => matches(`${row.label} ${row.id} ${row.about}`));
+			.filter((row) => matches(`${row.label} ${row.id} ${row.about} ${row.categories.join(' ')}`));
 	});
 
 	const availableList = createMemo(() => {
@@ -98,8 +102,9 @@ export function createPluginsPanel(deps: {
 				label: entry.name,
 				version: entry.version,
 				about: entry.description,
+				categories: entry.categories,
 			}))
-			.filter((row) => matches(`${row.label} ${row.id} ${row.about}`));
+			.filter((row) => matches(`${row.label} ${row.id} ${row.about} ${row.categories.join(' ')}`));
 	});
 
 	const rows = createMemo<PluginRow[]>(() => {

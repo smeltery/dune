@@ -268,9 +268,7 @@ test('startup offers a plugin for a missing configured theme', async () => {
 			{},
 			{ checkUpdates: true },
 		);
-		await until(t, () =>
-			t.captureCharFrame().includes('Install Mono for configured appearance mono'),
-		);
+		await until(t, () => t.captureCharFrame().includes('Configured appearance needs mono'));
 	} finally {
 		globalThis.fetch = realFetch;
 	}

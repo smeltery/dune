@@ -67,6 +67,7 @@ const INDEX = {
 			name: 'Mono',
 			version: '1.2.0',
 			description: 'quiet appearance',
+			categories: ['theme', 'icons'],
 			provides: {
 				themes: ['mono-dark'],
 				icons: ['mono-icons'],
@@ -134,6 +135,7 @@ test('a malformed catalog row is dropped, not fatal', () => {
 			version: '1.0.0',
 			description: '',
 			provides: { themes: [], icons: [], languageServers: [], filetypes: [] },
+			categories: [],
 		},
 	]);
 });
@@ -156,8 +158,24 @@ test('catalog rows can advertise language server plugins', () => {
 			version: '1.0.0',
 			description: '',
 			provides: { themes: [], icons: [], languageServers: ['kotlin'], filetypes: ['kotlin'] },
+			categories: [],
 		},
 	]);
+});
+
+test('catalog rows keep known categories', () => {
+	expect(
+		parseCatalog({
+			plugins: [
+				{
+					id: 'eslint',
+					version: '1.0.0',
+					categories: ['lsp', 'nope'],
+					provides: { languageServers: ['eslint'] },
+				},
+			],
+		})[0]?.categories,
+	).toEqual(['lsp']);
 });
 
 test('the catalog is read from the registry directory', async () => {
