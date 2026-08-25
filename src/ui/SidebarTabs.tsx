@@ -51,7 +51,11 @@ export function SidebarTabs(props: SidebarTabsProps) {
 	const pad = () => (padded() ? 1 : 0);
 	return (
 		<box height={1} flexDirection="row" flexShrink={0} backgroundColor={ui.barBg}>
-			<box width={1} flexShrink={0} backgroundColor={ui.barBg} />
+			{/* `ui.bg`, not the row's own `barBg`: some themes give the tree's unfocused
+			    selection background the same colour as `barBg`, and this cell is the
+			    leftmost span of the strip's row. Painting it `barBg` would make a
+			    colour scan for "the selected tree row" match this gutter instead. */}
+			<box width={1} flexShrink={0} backgroundColor={ui.bg} />
 			<For each={TABS}>
 				{(tab) => {
 					const active = () => props.view === tab.id;

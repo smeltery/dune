@@ -208,6 +208,8 @@ export function GitPanel(props: {
 			flexDirection="column"
 			backgroundColor={ui.panelBg}
 			flexShrink={0}
+			flexGrow={1}
+			flexBasis={0}
 			onMouseDown={props.onFocus}
 		>
 			<box height={2} flexDirection="column" backgroundColor={ui.panelBg} paddingLeft={2}>
