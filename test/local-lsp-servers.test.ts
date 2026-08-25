@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -197,3 +197,14 @@ function project(files: Record<string, string>): string {
 	}
 	return dir;
 }
+
+test('fixture eslint plugin is a valid local language server sidecar', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'dune-eslint-'));
+	mkdirSync(join(dir, '.dune', 'plugins', 'eslint'), { recursive: true });
+	const body = readFileSync(join(import.meta.dir, 'fixtures/eslint-plugin.json'), 'utf8');
+	writeFileSync(join(dir, '.dune', 'plugins', 'eslint', 'plugin.json'), body);
+	const loaded = loadLocalLspServers(dir);
+	expect(loaded.servers[0]?.id).toBe('eslint');
+	expect(loaded.servers[0]?.settings).toMatchObject({ validate: 'on' });
+	expect(loaded.plugins[0]?.id).toBe('eslint');
+});

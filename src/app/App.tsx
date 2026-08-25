@@ -582,6 +582,7 @@ export function App(props: AppTypes.AppProps) {
 		dependenciesChanged: lsp.dependenciesChanged,
 		reloadNotes: review.reloadNotes,
 		say,
+		setPrompt,
 		setGitRevision,
 		setGitLines,
 		setGitStatus,

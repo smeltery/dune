@@ -198,6 +198,19 @@ export function PluginsPanel(props: PluginsPanelProps) {
 											flexShrink={1}
 											content={cut(row.label, Math.max(4, props.width - 14))}
 										/>
+										<Show
+											when={
+												(row.kind === 'installed' || row.kind === 'available') &&
+												row.categories.length > 0
+											}
+										>
+											<text
+												fg={ui.faint}
+												bg={bg()}
+												flexShrink={0}
+												content={`  ${row.kind === 'installed' || row.kind === 'available' ? row.categories.join(' ') : ''}`}
+											/>
+										</Show>
 										<box flexGrow={1} backgroundColor={bg()} />
 										<text
 											fg={installedRow(row)?.update ? ui.accent : ui.faint}

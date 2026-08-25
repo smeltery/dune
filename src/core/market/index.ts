@@ -34,6 +34,7 @@ export interface MarketEntry {
 		languageServers: string[];
 		filetypes: string[];
 	};
+	categories: string[];
 }
 
 export interface CachedCatalog {
@@ -52,6 +53,11 @@ const isRecord = (raw: unknown): raw is Record<string, unknown> =>
 const ids = (raw: unknown): string[] =>
 	Array.isArray(raw) ? raw.filter((entry) => typeof entry === 'string' && entry) : [];
 
+const KNOWN_CATEGORIES = new Set(['language', 'lsp', 'theme', 'icons']);
+
+const categoriesOf = (raw: unknown): string[] =>
+	ids(raw).filter((word) => KNOWN_CATEGORIES.has(word));
+
 function parseEntry(raw: unknown): MarketEntry | null {
 	if (!isRecord(raw)) return null;
 	const { id, name, version, description } = raw;
@@ -63,6 +69,7 @@ function parseEntry(raw: unknown): MarketEntry | null {
 		name: typeof name === 'string' && name ? name : id,
 		version,
 		description: typeof description === 'string' ? description : '',
+		categories: categoriesOf(raw.categories),
 		provides: {
 			themes: ids(provides.themes),
 			icons: ids(provides.icons),

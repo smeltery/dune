@@ -121,7 +121,7 @@ test('the plugins page reloads plugins from disk', async () => {
 	await until(t, () => t.captureCharFrame().includes('Reload from disk'));
 	expect(t.captureCharFrame()).not.toContain('Update all plugins');
 	expect(t.captureCharFrame()).toContain('Reload from disk - ');
-	expect(t.captureCharFrame()).toContain('dune/plugins');
+	expect(t.captureCharFrame().replace(/[^\w/]/g, '')).toContain('dune/plugins');
 
 	expect(
 		writePlugin('mono', {
