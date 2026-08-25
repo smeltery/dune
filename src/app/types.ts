@@ -64,6 +64,7 @@ export type Prompt =
 	| { kind: 'gotoLine' }
 	| { kind: 'commitMessage' }
 	| { kind: 'commitAmend'; subject: string }
+	| { kind: 'commitAll'; message: string; count: number }
 	| { kind: 'newBranch'; from?: string | null }
 	| { kind: 'newFile'; dir: string }
 	| { kind: 'newFolder'; dir: string }

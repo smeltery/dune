@@ -1,4 +1,4 @@
-import type { KeyEvent } from '@opentui/core';
+import { TextAttributes, type KeyEvent } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
@@ -16,6 +16,7 @@ import { upstreamCommits } from '../../core/git';
 import { fuzzyScore } from '../../core/search';
 import { ui } from '../../themes';
 import { MARKS, statusColor } from '../FileTree';
+import { TextInput } from '../TextInput';
 
 const stageGlyph = (row: ChangeRow) => (rowArea(row) === 'staged' ? '−' : '+');
 
@@ -38,6 +39,13 @@ export function GitPanel(props: {
 	onDiscard: (path: string, status: FileStatus) => void;
 	onToggleStage: (row: ChangeRow) => void;
 	onCommit: () => void;
+	onFocusMessage: () => void;
+	commitMessage: string;
+	messageEditing: boolean;
+	hasMessageHistory: boolean;
+	onMessageInput: (value: string) => void;
+	onWalkHistory: (delta: number) => void;
+	onCancelMessage: () => void;
 	onPush: () => void;
 	onSync: () => void;
 	onBranchAction: (action: 'switch' | 'compare' | 'commits') => void;
@@ -121,6 +129,15 @@ export function GitPanel(props: {
 
 	useKeyboard((key: KeyEvent) => {
 		if (!props.focused) return;
+		if (props.messageEditing) {
+			if (key.name === 'return' || key.name === 'enter') props.onCommit();
+			else if (key.name === 'up') props.onWalkHistory(1);
+			else if (key.name === 'down') props.onWalkHistory(-1);
+			else if (key.name === 'escape') props.onCancelMessage();
+			else return;
+			key.preventDefault();
+			return;
+		}
 		const count = Math.max(1, rows().length);
 		const plain = !key.ctrl && !key.meta && !key.option && key.sequence?.length === 1;
 		const row = () => rows()[selected()];
@@ -156,7 +173,7 @@ export function GitPanel(props: {
 				props.onToggleStage(current);
 		} else if (plain && key.name === 'c') {
 			if (props.base) props.onBranchAction('commits');
-			else props.onCommit();
+			else props.onFocusMessage();
 		} else if (plain && key.name === 'd' && !props.base) {
 			const current = row();
 			if (current?.kind === 'file') props.onDiscard(current.change.path, current.change.status);
@@ -178,7 +195,7 @@ export function GitPanel(props: {
 		if (props.base)
 			return `b branch · B compare · c commits · / filter · p push${sync} · enter diff${fold}`;
 		const stage = staging() ? 'space stage · ' : '';
-		return `b branch · B compare · c commit · d discard · ${stage}p push${sync} · enter diff${fold}`;
+		return `b branch · B compare · c message · d discard · ${stage}p push${sync} · enter diff${fold}`;
 	};
 
 	return (
@@ -223,6 +240,61 @@ export function GitPanel(props: {
 					</Show>
 				</box>
 			</box>
+			<Show when={staging()}>
+				<box
+					height={1}
+					flexDirection="row"
+					backgroundColor={ui.panelBg}
+					paddingLeft={1}
+					onMouseDown={props.onFocusMessage}
+				>
+					<text fg={ui.faint} bg={ui.panelBg} flexShrink={0} content="✎ " />
+					<box flexGrow={1} backgroundColor={ui.panelBg}>
+						<Show
+							when={props.messageEditing}
+							fallback={
+								<text
+									fg={props.commitMessage ? ui.text : ui.faint}
+									bg={ui.panelBg}
+									wrapMode="none"
+									content={props.commitMessage || 'Message (c to edit)'}
+								/>
+							}
+						>
+							<TextInput
+								value={props.commitMessage}
+								placeholder={
+									props.hasMessageHistory ? 'Commit message (↑ history)' : 'Commit message'
+								}
+								onInput={props.onMessageInput}
+							/>
+						</Show>
+					</box>
+				</box>
+				<box height={1} flexDirection="row" backgroundColor={ui.panelBg} paddingLeft={1}>
+					<text
+						fg={ui.accent}
+						bg={ui.panelBg}
+						content="✓ Commit"
+						attributes={TextAttributes.BOLD}
+						onMouseDown={props.onCommit}
+					/>
+					<box flexGrow={1} backgroundColor={ui.panelBg} />
+					<Show when={props.branch}>
+						<text
+							fg={ui.dim}
+							bg={ui.panelBg}
+							wrapMode="none"
+							content={
+								props.upstream?.name
+									? `⇅ sync${props.upstream.ahead ? ` ↑${props.upstream.ahead}` : ''}${props.upstream.behind ? ` ↓${props.upstream.behind}` : ''} `
+									: '⇡ publish '
+							}
+							onMouseDown={props.onSync}
+						/>
+					</Show>
+				</box>
+			</Show>
 			<Show
 				when={rows().length > 0}
 				fallback={

@@ -38,6 +38,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Undo "${prompt.subject}" and keep its changes staged?`,
 			};
+		case 'commitAll':
+			return {
+				title: 'No staged changes',
+				verb: 'commit all',
+				danger: false,
+				message: `Nothing is staged — commit all ${prompt.count} changed ${prompt.count === 1 ? 'file' : 'files'} directly?`,
+			};
 		case 'deleteTag':
 			return {
 				title: 'Delete tag',

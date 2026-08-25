@@ -7,6 +7,7 @@ import {
 	addRemote,
 	amendCommit,
 	commitPaths,
+	commitStaged,
 	createBranch,
 	createTag,
 	defaultBranch,
@@ -42,6 +43,7 @@ import {
 	undoLastCommit,
 	unstagePaths,
 } from '../core/git';
+import { stepHistory } from '../core/messageHistory';
 import { unifiedDiff } from '../core/diff';
 import {
 	branchBehindCount,
@@ -79,6 +81,11 @@ export function createGitCommands(deps: {
 	/** What "Commit & push"/"Commit & sync" asked for, remembered across the file picker. */
 	const [commitVariant, setCommitVariant] = createSignal<'plain' | 'push' | 'sync'>('plain');
 	const [commitMessageHistory, setCommitMessageHistory] = createSignal<string[]>([]);
+	const [commitMessage, setCommitMessage] = createSignal('');
+	const [messageEditing, setMessageEditing] = createSignal(false);
+	const [messageHistory, setMessageHistory] = createSignal<string[]>([]);
+	const [messageAt, setMessageAt] = createSignal(-1);
+	const [messageDraft, setMessageDraft] = createSignal('');
 	const [diff, setDiff] = createSignal<DiffFile[] | null>(null);
 	const [diffTitle, setDiffTitle] = createSignal<string | null>(null);
 	const [panel, setPanel] = createSignal(false);
@@ -396,6 +403,59 @@ export function createGitCommands(deps: {
 		deps.setPrompt({ kind: 'commitMessage' });
 	};
 
+	const loadMessageHistory = () => {
+		setMessageAt(-1);
+		setMessageDraft('');
+		setMessageHistory(recentCommitMessages(deps.rootDir));
+	};
+
+	const focusCommitBox = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		if (diffBase() !== null)
+			return deps.say('Comparing against a branch — nothing to commit here', 'warn');
+		setPanel(true);
+		setMessageEditing(true);
+		loadMessageHistory();
+	};
+
+	const typeMessage = (value: string) => {
+		setCommitMessage(value);
+		const at = messageAt();
+		if (at >= 0 && value !== messageHistory()[at]) setMessageAt(-1);
+	};
+
+	const walkMessageHistory = (delta: number) => {
+		const step = stepHistory(messageHistory(), messageAt(), delta, commitMessage(), messageDraft());
+		if (!step) return;
+		setMessageAt(step.at);
+		setMessageDraft(step.draft);
+		setCommitMessage(step.value);
+	};
+
+	const submitCommitAll = (message: string) => {
+		const paths = [...statusMap(deps.rootDir, null, deps.gitScanDepth()).keys()];
+		if (paths.length === 0) return deps.say('Nothing to commit', 'warn');
+		setCommitMessage('');
+		runGit('Committing', () => commitPaths(deps.rootDir, message, paths), 'Committed');
+	};
+
+	const commitFromBox = () => {
+		if (!inRepository(deps.rootDir)) return deps.say('Not a git repository', 'warn');
+		if (diffBase() !== null)
+			return deps.say('Comparing against a branch — nothing to commit here', 'warn');
+		const message = commitMessage().trim();
+		if (!message) return deps.say('Enter a commit message', 'warn');
+		setMessageEditing(false);
+		const staged = stagedPaths(deps.rootDir);
+		if (staged.size > 0) {
+			setCommitMessage('');
+			return runGit('Committing', () => commitStaged(deps.rootDir, message), 'Committed');
+		}
+		const count = statusMap(deps.rootDir, null, deps.gitScanDepth()).size;
+		if (count === 0) return deps.say('Nothing to commit — working tree clean');
+		deps.setPrompt({ kind: 'commitAll', message, count });
+	};
+
 	const submitCommit = (message: string) => {
 		const paths = commitSelection();
 		const variant = commitVariant();
@@ -534,6 +594,15 @@ export function createGitCommands(deps: {
 	return {
 		commitFiles,
 		commitMessageHistory,
+		commitMessage,
+		messageEditing,
+		setMessageEditing,
+		hasMessageHistory: () => messageHistory().length > 0,
+		focusCommitBox,
+		typeMessage,
+		walkMessageHistory,
+		commitFromBox,
+		submitCommitAll,
 		branchChoices,
 		diff,
 		diffTitle,

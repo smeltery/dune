@@ -549,6 +549,11 @@ function mutate(cwd: string, args: string[]): Promise<GitResult> {
 	});
 }
 
+/** Commit whatever is in the index, as `git commit` with no pathspec does. */
+export function commitStaged(cwd: string, message: string): Promise<GitResult> {
+	return mutate(cwd, ['commit', '-m', message]);
+}
+
 export async function commitPaths(
 	cwd: string,
 	message: string,
