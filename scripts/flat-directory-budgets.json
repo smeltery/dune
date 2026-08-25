@@ -2,11 +2,11 @@
 	"default_files": 25,
 	"directories": {
 		"test": {
-			"limit": 114,
+			"limit": 115,
 			"reason": "Tests are flat by behavior surface so individual files can run directly with bun test test/name.test.tsx."
 		},
 		"src/app": {
-			"limit": 27,
+			"limit": 28,
 			"reason": "App orchestration modules stay together when they share command, keyboard, lifecycle, and UI plumbing."
 		},
 		"src/core": {
