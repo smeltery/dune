@@ -1,13 +1,8 @@
 {
 	"default_lines": 500,
 	"files": {
-<<<<<<< HEAD
-		"src/app/App.tsx": 965,
+		"src/app/App.tsx": 975,
 		"src/app/AppView.tsx": 845,
-=======
-		"src/app/App.tsx": 970,
-		"src/app/AppView.tsx": 840,
->>>>>>> 810a1cf (feat: expand rebindable commands and wire missing handlers)
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 700,
 		"src/app/documentActions.ts": 655,
