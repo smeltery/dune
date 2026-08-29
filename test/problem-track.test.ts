@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { problemRows } from '../src/editor/problems';
-import { activeProblemLines } from '../src/app/lsp/view';
+import { activeProblemLines, tabSeverityOf } from '../src/app/lsp/view';
 import type { Problem } from '../src/app/lsp/index';
 import type { ProblemSeverity } from '../src/lsp/protocol';
 
@@ -104,5 +104,27 @@ describe('lines a diagnostic covers', () => {
 	test('an inverted range still marks its own start line', () => {
 		const lines = activeProblemLines([problem({ line: 5, endLine: 2 })]);
 		expect([...lines.keys()]).toEqual([5]);
+	});
+});
+
+describe('tab severity marks', () => {
+	test('an error outranks a warning', () => {
+		expect(
+			tabSeverityOf([
+				problem({ severity: 'warning' }),
+				problem({ severity: 'error' }),
+				problem({ severity: 'info' }),
+			]),
+		).toBe('error');
+	});
+
+	test('info and hints never mark a tab', () => {
+		expect(
+			tabSeverityOf([problem({ severity: 'info' }), problem({ severity: 'hint' })]),
+		).toBeNull();
+	});
+
+	test('a warning alone marks the tab', () => {
+		expect(tabSeverityOf([problem({ severity: 'warning' })])).toBe('warning');
 	});
 });

@@ -64,6 +64,8 @@ import type { Comparison } from './state/comparison';
 import { ActivatePluginModal } from '../ui/overlays/ActivatePluginModal';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
+import { tabSeverityOf } from './lsp/view';
+import type { Problem } from './lsp';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
 import type { KeyScope } from '../ui/keys';
 
@@ -104,6 +106,8 @@ interface AppViewProps {
 	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	/** Diagnostics keyed by absolute path — drives tab severity marks. */
+	fileProblems: Record<string, Problem[]>;
 	problemRanges: readonly ProblemRange[];
 	reviews: Map<number, { draft: boolean; label: string; text: string }>;
 	problemCounts: { errors: number; warnings: number };
@@ -259,6 +263,7 @@ export function AppView(props: AppViewProps) {
 					name: p === props.renderedMarkdownPath ? `¶ ${basename(p)}` : basename(p),
 					dirty: props.buffers[p]?.dirty ?? false,
 					preview: p === props.previewPath,
+					severity: tabSeverityOf(props.fileProblems[p]),
 				}))}
 				activePath={props.activePath}
 				canBack={props.canNavigateBack}
