@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 
-import { fixture, launch, openFile, press, until } from './helpers';
+import { fixture, launch, openFile, press, until } from '../helpers';
 
-const FAKE = join(import.meta.dir, 'fixtures', 'fake-lsp.ts');
+const FAKE = join(import.meta.dir, '..', 'fixtures', 'fake-lsp.ts');
 
 /** Diagnostics cross a process boundary; give the fake server room to start. */
 const LSP_WAIT = 15_000;
