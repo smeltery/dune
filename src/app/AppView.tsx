@@ -61,6 +61,7 @@ import type { LspStatusRow } from '../lsp/status';
 import type { SidebarView } from './panes';
 import type { Review } from './review';
 import type { Comparison } from './state/comparison';
+import { ActivatePluginModal } from '../ui/overlays/ActivatePluginModal';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
@@ -203,6 +204,7 @@ interface AppViewProps {
 	onSubmitPrompt: (value: string) => void;
 	onCancelPrompt: () => void;
 	onConfirmPrompt: () => void;
+	onChooseActivation: (choice: string) => void;
 	onPickSearch: (match: SearchMatch) => void;
 	onReplaceOne?: (match: SearchMatch, replacement: string) => void;
 	onReplaceAll?: (query: string, replacement: string, options: SearchOptions) => void;
@@ -646,6 +648,11 @@ export function AppView(props: AppViewProps) {
 					/>
 				)}
 			</Show>
+			<ActivatePluginModal
+				prompt={props.prompt}
+				onChoose={props.onChooseActivation}
+				onCancel={props.onCancelPrompt}
+			/>
 			<Show when={props.search}>
 				{(open: () => { scope: SearchScope; replacing?: boolean }) => {
 					const search = open();

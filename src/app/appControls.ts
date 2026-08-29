@@ -33,7 +33,11 @@ export function createAppControls(deps: {
 		setTheme(name);
 		invalidateSyntaxStyle();
 		patch({ theme: name, themeSync: false });
-		deps.say(`Theme: ${themeLabels[name]}`);
+		deps.say(`Theme: ${themeLabels[name] ?? name}`);
+	};
+	const applyIconTheme = (id: string) => {
+		patch({ iconTheme: id });
+		deps.say(`File icons: ${id}`);
 	};
 	const cancelThemePreview = () => {
 		setTheme(deps.config.theme);
@@ -132,6 +136,7 @@ export function createAppControls(deps: {
 	const confirmation = createMemo(() => confirmationForPrompt(deps.prompt()));
 	return {
 		applyTheme,
+		applyIconTheme,
 		applyThemeSlot,
 		previewTheme,
 		cancelThemePreview,
@@ -190,6 +195,7 @@ export type AppCommandDeps = {
 	applyVim: (enabled: boolean) => void;
 	applyTabSize: (size: number) => void;
 	applyTheme: (name: ThemeName) => void;
+	applyIconTheme: (id: string) => void;
 	toggleThemeSync: () => void;
 	editFormatter: () => void;
 	editKeybinding: () => void;

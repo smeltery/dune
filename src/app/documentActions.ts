@@ -5,7 +5,7 @@ import { produce } from 'solid-js/store';
 import { removeAll } from '../core/bulk';
 import { formatterFor, parseFormatterEdit, runFormatter } from '../core/format';
 import { parseLspServerEdit } from '../core/lspSettings';
-import { fetchPlugin, MARKET_URL, removeFromDisk, writePlugin } from '../core/market';
+import { MARKET_URL, removeFromDisk } from '../core/market';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '../core/config';
 import type { Config } from '../core/config';
 import { createDir, createFile, exists, mtimeOf, readTextFile, writeFile } from '../core/fs';
@@ -22,7 +22,11 @@ import { trimTrailing } from '../editor/lines';
 import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
 import { ALT } from '../ui/keys';
-import { installMarketPlugin } from './appearance/pluginsPage';
+import {
+	installMarketPlugin,
+	activatePluginChoice,
+	choosePluginActivation,
+} from './appearance/pluginsPage';
 import { KEYBINDABLE_COMMANDS } from './commands/keybindings';
 import { CLASH_CHANGED } from './constants';
 import { isTextPrompt } from './prompts';
@@ -90,6 +94,9 @@ export function createDocumentActions(deps: {
 	pushEdit: (content: string) => void;
 	patchConfig: (patch: Partial<Config>) => void;
 	reloadAppearancePlugins: () => void;
+	appearance: () => import('../core/localThemes').AppearancePluginLoad;
+	applyTheme: (id: string) => void;
+	applyIconTheme: (id: string) => void;
 	addReviewNote: (note: {
 		path: string;
 		line: number;
@@ -493,15 +500,14 @@ export function createDocumentActions(deps: {
 		}
 		if (p.kind === 'appearancePluginId') {
 			if (!name) return deps.say('Nothing entered', 'warn');
-			void (async () => {
-				const fetched = await fetchPlugin(name, { registry: deps.config.pluginRegistry });
-				if (!fetched.ok) return deps.say(`Plugin ${name}: ${fetched.error}`, 'error');
-				const error = writePlugin(name, fetched);
-				if (error) return deps.say(`Could not install ${name}: ${error}`, 'error');
-				deps.reloadAppearancePlugins();
-				deps.say(`Installed plugin ${name} ${fetched.version}`);
-			})();
-			return;
+			return void installMarketPlugin(name, {
+				config: deps.config,
+				reload: deps.reloadAppearancePlugins,
+				say: deps.say,
+				appearance: deps.appearance,
+				prompt: deps.prompt,
+				setPrompt: deps.setPrompt,
+			});
 		}
 		if (p.kind === 'appearancePluginRemoveId') {
 			if (!name) return deps.say('Nothing entered', 'warn');
@@ -619,9 +625,18 @@ export function createDocumentActions(deps: {
 					config: deps.config,
 					reload: deps.reloadAppearancePlugins,
 					say: deps.say,
+					appearance: deps.appearance,
+					prompt: deps.prompt,
+					setPrompt: deps.setPrompt,
 				});
+			case 'activatePlugin': {
+				const only = p.choices[0];
+				if (only) activatePluginChoice(only.id, deps);
+				return;
+			}
 		}
 	};
+	const chooseActivation = (choice: string) => choosePluginActivation(choice, deps);
 	return {
 		onEditorChange,
 		resolveConflict,
@@ -634,6 +649,7 @@ export function createDocumentActions(deps: {
 		formatOpenFiles,
 		submitPrompt,
 		confirmPrompt,
+		chooseActivation,
 		syncFromDisk,
 	};
 }
