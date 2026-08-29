@@ -27,6 +27,12 @@ export function listRows(terminal: number, chrome: number, max: number): number 
 	return Math.max(3, Math.min(max, terminal - chrome));
 }
 
+/** `text` in at most `room` columns, ending in an ellipsis where it was cut. */
+export function cut(text: string, room: number): string {
+	if (room <= 0) return '';
+	return text.length > room ? `${text.slice(0, room - 1)}…` : text;
+}
+
 /**
  * Break `text` onto lines of at most `width`. A `<text>` does not wrap, so a message
  * longer than its modal simply ran off the edge and out of the border.

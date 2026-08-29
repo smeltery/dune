@@ -2,12 +2,15 @@ import { createEffect, createMemo } from 'solid-js';
 import type { Accessor, Setter } from 'solid-js';
 import type { ProblemSeverity } from '../../lsp/protocol';
 import { SEVERITY_RANK } from '../../lsp/protocol';
-import type { Choice } from '../../ui/ChoiceModal';
+import type { ProblemEntry } from '../../ui/overlays/ProblemsModal';
 import type { Focus } from '../types';
 import type { Problem } from './index';
 
 export type ProblemLine = { severity: ProblemSeverity; message: string };
-export type ProblemChoice = Pick<Problem, 'path' | 'line' | 'col' | 'message' | 'severity'>;
+export type ProblemChoice = Pick<
+	Problem,
+	'path' | 'line' | 'col' | 'message' | 'severity' | 'source'
+>;
 
 /**
  * A range crossing lines used to mark only its start line, so a multi-line diagnostic (a
@@ -49,14 +52,17 @@ export function openProblemRows(paths: readonly string[], problems: Record<strin
 			col: problem.col,
 			severity: problem.severity,
 			message: problem.message,
+			source: problem.source,
 		})),
 	);
 }
 
-export function problemChoices(rootDir: string, rows: readonly ProblemChoice[]): Choice[] {
-	return rows.map((problem, index) => ({
-		id: String(index),
-		label: `${problem.path.slice(rootDir.length + 1)}:${problem.line + 1}:${problem.col + 1} ${problem.severity}: ${problem.message.replaceAll(/\s+/g, ' ')}`,
+export function problemEntries(rootDir: string, rows: readonly ProblemChoice[]): ProblemEntry[] {
+	return rows.map((problem) => ({
+		...problem,
+		rel: problem.path.startsWith(`${rootDir}/`)
+			? problem.path.slice(rootDir.length + 1)
+			: problem.path,
 	}));
 }
 
@@ -99,6 +105,7 @@ export function createProblemUi(deps: {
 			col: problem.col,
 			severity: problem.severity,
 			message: problem.message,
+			source: problem.source,
 		}));
 	});
 	const lines = createMemo(() => {
@@ -109,7 +116,7 @@ export function createProblemUi(deps: {
 		const path = deps.activePath();
 		return problemCounts(path ? deps.problems[path] : undefined);
 	});
-	const choices = createMemo(() => problemChoices(deps.rootDir, scopedRows()));
+	const entries = createMemo(() => problemEntries(deps.rootDir, scopedRows()));
 
 	createEffect(() => {
 		if (deps.problemsOpen() && scopedRows().length === 0) deps.setProblemsOpen(false);
@@ -141,11 +148,10 @@ export function createProblemUi(deps: {
 		if (!target) return deps.say('No problems in this file');
 		jumpTo(target);
 	};
-	const pick = (id: string) => {
-		const problem = rows()[Number(id)];
+	const pick = (problem: ProblemChoice) => {
 		deps.setProblemsOpen(false);
-		if (problem) jumpTo(problem);
+		jumpTo(problem);
 	};
 
-	return { lines, counts, choices, scope: deps.problemsOpen, list, atCursor, next, pick };
+	return { lines, counts, entries, scope: deps.problemsOpen, list, atCursor, next, pick };
 }

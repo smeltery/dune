@@ -21,13 +21,38 @@ describe('LSP diagnostics in the UI', () => {
 
 		await runCommand(t, 'List problems');
 		expect(frame(t)).toContain('Problems');
-		expect(frame(t)).toContain('a.ts:2:13 error: found oops');
+		expect(frame(t)).toContain('1 error');
+		expect(frame(t)).toContain('a.ts:2:13');
+		expect(frame(t)).toContain('found oops');
+		expect(frame(t)).toContain('●');
 
 		await press(t, (input) => input.pressEnter());
 		expect(frame(t)).toContain('Ln 2, Col 13');
 
 		await runCommand(t, 'Next problem');
 		expect(frame(t)).toContain('found oops');
+	});
+
+	test('problems modal shows severity tally and jumps from cursor scope', async () => {
+		const dir = fixture({
+			'a.ts': 'const ok = 1\nconst bad = oops\nconst worse = oops\n',
+		});
+		const t = await launch(
+			dir,
+			lspConfig,
+			{ width: 100, height: 28 },
+			{ openFile: join(dir, 'a.ts') },
+		);
+
+		await until(t, () => frame(t).includes('● 2'));
+		await press(t, (input) => input.pressArrow('down'));
+		await runCommand(t, 'Show problem at cursor');
+		expect(frame(t)).toContain('Problem at cursor');
+		expect(frame(t)).toContain('1 error');
+		expect(frame(t)).toContain('a.ts:2:13');
+
+		await press(t, (input) => input.pressEnter());
+		expect(frame(t)).toContain('Ln 2, Col 13');
 	});
 
 	test('inline problem text can be disabled', async () => {
