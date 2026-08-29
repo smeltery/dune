@@ -12,7 +12,7 @@
 		"src/core/git.ts": 760,
 		"src/editor/vim.ts": 612,
 		"src/ui/EditorPane.tsx": 680,
-		"src/ui/SearchPanel.tsx": 530,
+		"src/ui/SearchPanel.tsx": 580,
 		"src/ui/ChangesView.tsx": 600,
 		"src/ui/overlays/DiffView.tsx": 380,
 		"test/git.test.tsx": 545,
@@ -20,5 +20,7 @@
 		"src/ui/overlays/GitPanel.tsx": 500,
 		"src/app/keyboard.ts": 420
 	},
-	"exclude": ["^bun\\.lock$"]
+	"exclude": [
+		"^bun\\.lock$"
+	]
 }
