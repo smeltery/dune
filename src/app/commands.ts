@@ -88,6 +88,9 @@ export interface CommandActions {
 	setTheme: (name: ThemeName) => void;
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
+	setIconTheme: (id: string) => void;
+	previewIcons: (id: string) => void;
+	cancelIconPreview: () => void;
 	lineOp: (op: NonNullable<LineOpRequest>['op']) => void;
 	foldOp: (op: import('../editor/folds').FoldOp) => void;
 	resolveMergeConflict: () => void;
@@ -155,6 +158,8 @@ export interface CommandActions {
 export interface CommandContext {
 	vimEnabled: boolean;
 	activeTheme: ThemeName;
+	activeIconTheme: string;
+	iconThemes: readonly { id: string; name: string }[];
 	tabSize: number;
 	wrap: boolean;
 	trimOnSave: boolean;
@@ -400,6 +405,17 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					run: () => actions.setTheme(name),
 				})),
 			],
+		},
+		{
+			id: 'icons',
+			label: 'File icons',
+			children: ctx.iconThemes.map((theme) => ({
+				id: `icons.${theme.id}`,
+				label: `${check(ctx.activeIconTheme === theme.id)}${theme.name}`,
+				preview: () => actions.previewIcons(theme.id),
+				cancelPreview: actions.cancelIconPreview,
+				run: () => actions.setIconTheme(theme.id),
+			})),
 		},
 		{
 			id: 'editor',

@@ -23,6 +23,11 @@ function rowOf(label: string): number {
 	const tree = buildCommands(actions, {
 		vimEnabled: false,
 		activeTheme: 'dark',
+		activeIconTheme: 'none',
+		iconThemes: [
+			{ id: 'none', name: 'none' },
+			{ id: 'unicode', name: 'Unicode shapes' },
+		],
 		tabSize: 2,
 		wrap: true,
 		trimOnSave: false,

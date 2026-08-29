@@ -25,6 +25,7 @@ export function createAppControls(deps: {
 	selectedNode: () => TreeNode | undefined;
 	setVimMode: (mode: 'normal' | null) => void;
 	setPrompt: (prompt: Prompt) => void;
+	setIconPreview: (id: string | null) => void;
 	patchConfig: (patch: Partial<Config>, scope?: 'user' | 'project') => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 }) {
@@ -36,9 +37,12 @@ export function createAppControls(deps: {
 		deps.say(`Theme: ${themeLabels[name] ?? name}`);
 	};
 	const applyIconTheme = (id: string) => {
+		deps.setIconPreview(null);
 		patch({ iconTheme: id });
 		deps.say(`File icons: ${id}`);
 	};
+	const previewIcons = (id: string) => deps.setIconPreview(id);
+	const cancelIconPreview = () => deps.setIconPreview(null);
 	const cancelThemePreview = () => {
 		setTheme(deps.config.theme);
 		invalidateSyntaxStyle();
@@ -137,6 +141,8 @@ export function createAppControls(deps: {
 	return {
 		applyTheme,
 		applyIconTheme,
+		previewIcons,
+		cancelIconPreview,
 		applyThemeSlot,
 		previewTheme,
 		cancelThemePreview,

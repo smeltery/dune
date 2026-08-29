@@ -68,6 +68,8 @@ export function App(props: AppTypes.AppProps) {
 	const [tabs, setTabs] = createSignal<string[]>(restored.tabs);
 	const [activePath, setActivePath] = createSignal<string | null>(restored.activePath);
 	const [previewPath, setPreviewPath] = createSignal<string | null>(null);
+	const [iconPreview, setIconPreview] = createSignal<string | null>(null);
+	const activeIconTheme = () => iconPreview() ?? config.iconTheme;
 	const [renderedMarkdown, setRenderedMarkdown] = createSignal<string[]>([]);
 	const [sidebar, setSidebar] = createSignal(restored.sidebar);
 	const [focus, setFocus] = createSignal<AppTypes.Focus>(restored.sidebar ? 'tree' : 'editor');
@@ -498,6 +500,7 @@ export function App(props: AppTypes.AppProps) {
 		selectedNode,
 		setVimMode,
 		setPrompt,
+		setIconPreview,
 		patchConfig,
 		say,
 	});
@@ -513,6 +516,7 @@ export function App(props: AppTypes.AppProps) {
 	const commands = createAppCommandTree({
 		config,
 		rootDir,
+		iconTheme: activeIconTheme,
 		buffers,
 		saveActive,
 		saveAll: documentActions.saveAll,
@@ -727,6 +731,7 @@ export function App(props: AppTypes.AppProps) {
 			<AppView
 				rootDir={rootDir}
 				config={config}
+				iconTheme={activeIconTheme()}
 				iconThemes={appearancePlugins().iconThemes}
 				tabs={tabs()}
 				activePath={activePath()}

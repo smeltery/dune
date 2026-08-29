@@ -22,6 +22,7 @@ import type { ConflictSide } from '../../core/git/conflicts';
 export function createAppCommandTree(deps: {
 	config: Config;
 	rootDir: string;
+	iconTheme: () => string;
 	buffers: Record<string, BufferState>;
 	activePath: Accessor<string | null>;
 	cursor: Accessor<{ line: number; col: number }>;
@@ -66,6 +67,9 @@ export function createAppCommandTree(deps: {
 		applyTheme: (name: ThemeName) => void;
 		previewTheme: (name: ThemeName) => void;
 		cancelThemePreview: () => void;
+		applyIconTheme: (id: string) => void;
+		previewIcons: (id: string) => void;
+		cancelIconPreview: () => void;
 		toggleDotfiles: () => void;
 		toggleGitignored: () => void;
 		toggleWrap: () => void;
@@ -105,6 +109,7 @@ export function createAppCommandTree(deps: {
 	return createAppCommands({
 		config: deps.config,
 		rootDir: deps.rootDir,
+		iconTheme: deps.iconTheme,
 		saveActive: deps.saveActive,
 		saveAll: deps.saveAll,
 		saveWithoutFormatting: deps.saveWithoutFormatting,
@@ -148,6 +153,9 @@ export function createAppCommandTree(deps: {
 		applyTheme: deps.controls.applyTheme,
 		previewTheme: deps.controls.previewTheme,
 		cancelThemePreview: deps.controls.cancelThemePreview,
+		applyIconTheme: deps.controls.applyIconTheme,
+		previewIcons: deps.controls.previewIcons,
+		cancelIconPreview: deps.controls.cancelIconPreview,
 		toggleDotfiles: deps.controls.toggleDotfiles,
 		toggleGitignored: deps.controls.toggleGitignored,
 		toggleTrim: deps.controls.toggleTrim,
