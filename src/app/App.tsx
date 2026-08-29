@@ -777,7 +777,7 @@ export function App(props: AppTypes.AppProps) {
 				problemRanges={activePath() ? (lsp.problems[activePath()!] ?? []) : []}
 				reviews={review.marks()}
 				problemCounts={problemUi.counts()}
-				problemChoices={problemUi.choices()}
+				problemEntries={problemUi.entries()}
 				problemsOpen={problemsOpen()}
 				problemsTitle={problemsOpen() === 'cursor' ? 'Problem at cursor' : 'Problems'}
 				prompt={prompt()}

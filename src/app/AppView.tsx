@@ -62,6 +62,7 @@ import type { SidebarView } from './panes';
 import type { Review } from './review';
 import type { Comparison } from './state/comparison';
 import { ActivatePluginModal } from '../ui/overlays/ActivatePluginModal';
+import { ProblemsModal, type ProblemEntry } from '../ui/overlays/ProblemsModal';
 import { ReviewKindModal } from '../ui/overlays/ReviewKindModal';
 import type { ProblemsScope } from './lsp/view';
 import type { BufferState, Confirmation, Conflict, Focus, LineOpRequest, Prompt } from './types';
@@ -107,7 +108,7 @@ interface AppViewProps {
 	problemRanges: readonly ProblemRange[];
 	reviews: Map<number, { draft: boolean; label: string; text: string }>;
 	problemCounts: { errors: number; warnings: number };
-	problemChoices: Choice[];
+	problemEntries: ProblemEntry[];
 	problemsOpen: ProblemsScope | false;
 	problemsTitle: string;
 	prompt: Prompt;
@@ -215,7 +216,7 @@ interface AppViewProps {
 	onClosePicker: () => void;
 	onClosePalette: () => void;
 	onCloseSettings: () => void;
-	onPickProblem: (id: string) => void;
+	onPickProblem: (problem: ProblemEntry) => void;
 	onCloseProblems: () => void;
 	onChooseReviewKind: (kind: string) => void;
 	onCloseLspStatus: () => void;
@@ -701,10 +702,9 @@ export function AppView(props: AppViewProps) {
 				/>
 			</Show>
 			<Show when={props.problemsOpen}>
-				<ChoiceModal
+				<ProblemsModal
+					problems={props.problemEntries}
 					title={props.problemsTitle}
-					message="Enter jumps to the selected diagnostic."
-					choices={props.problemChoices}
 					onPick={props.onPickProblem}
 					onCancel={props.onCloseProblems}
 				/>
