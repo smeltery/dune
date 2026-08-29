@@ -221,6 +221,12 @@ export const KEYS: KeyInfo[] = [
 		section: 'Source control',
 		where: 'git',
 	},
+	{
+		key: `Ctrl+${ALT}+U / J`,
+		label: 'Resolve conflict · next one',
+		section: 'Source control',
+		where: 'editor',
+	},
 
 	{
 		key: '↑↓ · Enter · ⌫',

@@ -89,6 +89,8 @@ export function useAppKeyboard(deps: {
 	problemsRestart: () => void;
 	completion: () => void;
 	foldOp: (op: 'fold' | 'unfold' | 'foldAll' | 'unfoldAll') => void;
+	resolveConflict: () => void;
+	nextConflict: () => void;
 	expanded: () => Set<string>;
 }) {
 	const copyTarget = (kind: 'absolute' | 'relative') => {
@@ -109,6 +111,8 @@ export function useAppKeyboard(deps: {
 		'editor.unfold': () => deps.foldOp('unfold'),
 		'editor.foldAll': () => deps.foldOp('foldAll'),
 		'editor.unfoldAll': () => deps.foldOp('unfoldAll'),
+		'editor.resolveConflict': deps.resolveConflict,
+		'editor.nextConflict': deps.nextConflict,
 		'tabs.switch': () => deps.setPicker('tabs'),
 		'navigation.back': deps.navigateBack,
 		'navigation.forward': deps.navigateForward,
@@ -212,6 +216,12 @@ export function useAppKeyboard(deps: {
 		}
 		if (key.ctrl && chord(key) && k === 'd' && !customizes('editor.deleteLine')) {
 			return claim(() => deps.lineOp('delete'));
+		}
+		if (key.ctrl && chord(key) && k === 'u' && !customizes('editor.resolveConflict')) {
+			return claim(deps.resolveConflict);
+		}
+		if (key.ctrl && chord(key) && k === 'j' && !customizes('editor.nextConflict')) {
+			return claim(deps.nextConflict);
 		}
 		const vimOwnsRedo = deps.config.vim && deps.focus() === 'editor' && deps.vimMode() !== 'insert';
 		if (key.ctrl && k === 'r' && !vimOwnsRedo && !customizes('find.project'))

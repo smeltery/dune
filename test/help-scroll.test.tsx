@@ -22,7 +22,7 @@ test('on a short terminal the table windows instead of clipping the footer', asy
 	// The last section is off-screen until scrolled to.
 	expect(frame).not.toContain('Editor → tree');
 
-	for (let n = 0; n < 60; n++) await press(t, (i) => i.pressArrow('down'));
+	for (let n = 0; n < 100; n++) await press(t, (i) => i.pressArrow('down'));
 	expect(t.captureCharFrame()).toContain('Editor → tree');
 });
 

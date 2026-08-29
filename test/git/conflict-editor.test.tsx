@@ -55,3 +55,28 @@ test('next conflict jumps and reports count', async () => {
 	await runCommand(t, 'Next conflict');
 	await until(t, () => t.captureCharFrame().includes('Conflict 2 of 2'));
 });
+
+test('Ctrl+Opt+U opens the resolve chooser at the cursor', async () => {
+	const t = await launch(fixture({ 'a.ts': CONFLICTED }));
+	await openFile(t, 'a.ts');
+	await intoConflict(t);
+	await press(t, (input) => input.pressKey('u', { ctrl: true, meta: true }));
+	await until(t, () => t.captureCharFrame().includes('Merge conflict'));
+	expect(t.captureCharFrame()).toContain('Current change (HEAD)');
+});
+
+test('Ctrl+Opt+J jumps to the next conflict', async () => {
+	const t = await launch(fixture({ 'a.ts': CONFLICTED + CONFLICTED }));
+	await openFile(t, 'a.ts');
+	await press(t, (input) => input.pressKey('j', { ctrl: true, meta: true }));
+	await until(t, () => t.captureCharFrame().includes('Conflict 1 of 2'));
+});
+
+test('a custom binding can run next conflict', async () => {
+	const F2 = '\u001BOQ';
+	const dir = fixture({ 'a.ts': CONFLICTED + CONFLICTED });
+	const t = await launch(dir, { keybindings: { 'editor.nextConflict': 'F2' } });
+	await openFile(t, 'a.ts');
+	await press(t, (input) => void input.pressKeys([F2]));
+	await until(t, () => t.captureCharFrame().includes('Conflict 1 of 2'));
+});
