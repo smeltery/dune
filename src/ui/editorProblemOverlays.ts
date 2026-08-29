@@ -36,6 +36,7 @@ export function overlaySpan(
 	editor: TextareaRenderable,
 	byLine: Map<number, Segment[]>,
 	row: number,
+	sourceLine: number,
 	text: string,
 	start: number,
 	end: number,
@@ -49,7 +50,7 @@ export function overlaySpan(
 		editor.addHighlight(row, inCells({ start: from, end: to, styleId, priority }, text));
 	};
 	let at = start;
-	for (const segment of byLine.get(row) ?? []) {
+	for (const segment of byLine.get(sourceLine) ?? []) {
 		if (segment.end <= at || segment.start >= end) continue;
 		const from = Math.max(segment.start, at);
 		const to = Math.min(segment.end, end);
@@ -79,7 +80,7 @@ export function markProblemSpans(
 			: problem.deprecated
 				? 'deprecated'
 				: problem.severity;
-		overlaySpan(editor, byLine, row, text, start, end, `dune.problem.${group}`, 100);
+		overlaySpan(editor, byLine, row, line, text, start, end, `dune.problem.${group}`, 100);
 	};
 	for (const problem of starting ?? []) {
 		const end =
