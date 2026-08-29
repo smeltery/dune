@@ -88,7 +88,13 @@ test('the built-in vue server spawns for .vue files', async () => {
 	await createRoot((dispose) => {
 		disposers.push(dispose);
 		const warnings: string[] = [];
-		const config = { ...DEFAULTS, lsp: true, lspServers: { vue: ['bun', FAKE] } };
+		const config = {
+			...DEFAULTS,
+			lsp: true,
+			// Disable the sibling tsserver half — this test only checks the Vue
+			// language server itself can spawn for `.vue`.
+			lspServers: { vue: ['bun', FAKE], 'vue-typescript': [] },
+		};
 		const lsp = createAppLsp({ rootDir: dir, config, say: (msg) => warnings.push(msg) });
 
 		lsp.clientFor(path);
