@@ -121,6 +121,16 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 					...(prompt.commands?.length ? [`It may run: ${prompt.commands.join(', ')}`] : []),
 				].join(' '),
 			};
+		case 'activatePlugin': {
+			const only = prompt.choices.length === 1 ? prompt.choices[0]! : null;
+			if (!only) return null;
+			return {
+				title: 'Plugin installed',
+				verb: 'use it',
+				danger: false,
+				message: `${prompt.name} is installed. Use the ${only.label}?`,
+			};
+		}
 		default:
 			return null;
 	}

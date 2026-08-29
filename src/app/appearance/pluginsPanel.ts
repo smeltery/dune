@@ -50,6 +50,8 @@ export function createPluginsPanel(deps: {
 	patchConfig: (patch: Partial<Config>) => void;
 	reload: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	prompt: () => import('../types').Prompt;
+	setPrompt: (prompt: import('../types').Prompt) => void;
 }) {
 	const [collapsed, setCollapsed] = createSignal<Record<string, boolean>>({ available: true });
 	const [cursor, setCursor] = createSignal(0);
@@ -162,6 +164,9 @@ export function createPluginsPanel(deps: {
 				config: deps.config,
 				reload: deps.reload,
 				say: deps.say,
+				appearance: deps.appearance,
+				prompt: deps.prompt,
+				setPrompt: deps.setPrompt,
 			});
 			return;
 		}
@@ -226,6 +231,10 @@ export function createPluginsPanel(deps: {
 						config: deps.config,
 						reload: () => {},
 						say: deps.say,
+						appearance: deps.appearance,
+						prompt: deps.prompt,
+						setPrompt: deps.setPrompt,
+						offerActivation: false,
 					}),
 				),
 			);

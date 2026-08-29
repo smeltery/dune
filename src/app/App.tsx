@@ -17,8 +17,7 @@ import { setTheme } from '../themes';
 import type { VimMode } from '../editor/vim';
 import { createAppControls } from './appControls';
 import { AppView } from './AppView';
-import { createAppearancePluginUi } from './appearance/pluginsPage';
-import { createPluginsPanel } from './appearance/pluginsPanel';
+import { createAppearanceControllers } from './appearance/controllers';
 import { reloadAppearancePlugins as reloadPlugins } from './appearance/reload';
 import { prepareStartup } from './appearance/startup';
 import { createAppCommandTree } from './commands/tree';
@@ -128,7 +127,7 @@ export function App(props: AppTypes.AppProps) {
 	const refreshTree = () => setExpanded((prev) => new Set(prev));
 	const reloadUi = () =>
 		reloadPlugins({ rootDir, config, setAppearancePlugins, setLspServers, lsp, say });
-	const appearancePluginUi = createAppearancePluginUi({
+	const { ui: appearancePluginUi, panel: plugins } = createAppearanceControllers({
 		rootDir,
 		config,
 		appearance: appearancePlugins,
@@ -137,14 +136,8 @@ export function App(props: AppTypes.AppProps) {
 			setPrompt({ kind: 'appearancePluginRegistry', current: config.pluginRegistry }),
 		reload: reloadUi,
 		say,
-	});
-	const plugins = createPluginsPanel({
-		rootDir,
-		config,
-		appearance: appearancePlugins,
-		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
-		reload: reloadUi,
-		say,
+		prompt,
+		setPrompt,
 	});
 	const { renderedMarkdownPath, toggleMarkdown } = createMarkdownView({
 		activePath,
@@ -419,6 +412,10 @@ export function App(props: AppTypes.AppProps) {
 		if (!noteKind) return;
 		setPrompt(reviewNotePrompt(ask, noteKind));
 	};
+	const appearanceApply = {
+		theme: (_id: string) => {},
+		icons: (_id: string) => {},
+	};
 	const documentActions = createDocumentActions({
 		config,
 		buffers,
@@ -453,6 +450,9 @@ export function App(props: AppTypes.AppProps) {
 		pushEdit,
 		patchConfig: (patch) => patchConfig(patch, settingsPage() ?? 'user'),
 		reloadAppearancePlugins: reloadUi,
+		appearance: appearancePlugins,
+		applyTheme: (id) => appearanceApply.theme(id),
+		applyIconTheme: (id) => appearanceApply.icons(id),
 		addReviewNote: review.add,
 		addReviewReply: review.reply,
 		whileFree,
@@ -501,6 +501,8 @@ export function App(props: AppTypes.AppProps) {
 		patchConfig,
 		say,
 	});
+	appearanceApply.theme = controls.applyTheme;
+	appearanceApply.icons = controls.applyIconTheme;
 	const settingRows = createAppSettingRows({
 		config,
 		iconThemes: () => appearancePlugins().iconThemes,
@@ -888,6 +890,7 @@ export function App(props: AppTypes.AppProps) {
 				}}
 				onCancelPrompt={() => setPrompt(null)}
 				onConfirmPrompt={confirmActivePrompt}
+				onChooseActivation={documentActions.chooseActivation}
 				onPickSearch={jumpTo}
 				onReplaceOne={(match, replacement) =>
 					search()?.scope === 'project'

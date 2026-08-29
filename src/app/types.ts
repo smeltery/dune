@@ -112,6 +112,12 @@ export type Prompt =
 			manager?: PackageManager;
 	  }
 	| { kind: 'installPlugin'; id: string; name: string; reason: string; commands?: string[] }
+	| {
+			kind: 'activatePlugin';
+			name: string;
+			choices: { id: string; label: string }[];
+			more: number;
+	  }
 	| null;
 
 export type PromptKind = NonNullable<Prompt>['kind'];

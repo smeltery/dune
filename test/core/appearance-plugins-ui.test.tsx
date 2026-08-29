@@ -3,8 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
-import { writeCachedCatalog, writePlugin } from '../../src/core/market';
-import { MARKET_URL } from '../../src/core/market';
+import { MARKET_URL, writeCachedCatalog, writePlugin } from '../../src/core/market';
 import { fixture, launch, openFile, press, pressEscape, runCommand, until } from '../helpers';
 
 const testConfigFile = () => join(process.env.XDG_CONFIG_HOME!, 'dune', 'config.json');
@@ -181,7 +180,8 @@ test('the plugins page installs cached market plugins', async () => {
 		});
 		await press(t, (input) => input.pressEnter());
 		await until(t, () => t.captureCharFrame().includes('Installed plugin contrast 2.0.0'), 80);
-		await until(t, () => existsSync(join(USER_THEME_PLUGIN_DIR, 'contrast/plugin.json')), 80);
+		await until(t, () => t.captureCharFrame().includes('Use the Contrast Icons file icons?'));
+		await pressEscape(t);
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'contrast/plugin.json'), 'utf8')),

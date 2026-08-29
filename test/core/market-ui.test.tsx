@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { writePlugin } from '../../src/core/market';
 import { USER_THEME_PLUGIN_DIR } from '../../src/core/localThemes';
-import { fixture, launch, press, runCommand, settle, until } from '../helpers';
+import { fixture, launch, press, pressEscape, runCommand, settle, until } from '../helpers';
 
 test('the palette can check the plugin market', async () => {
 	const realFetch = globalThis.fetch;
@@ -57,12 +57,19 @@ test('the palette can install a plugin by id', async () => {
 		await press(t, (input) => void input.typeText('mono'));
 		await press(t, (input) => input.pressEnter());
 		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.0.0'));
+		await until(t, () => t.captureCharFrame().includes('Use the Mono Icons file icons?'));
+		await press(t, (input) => input.pressEnter());
+		await until(t, () => t.captureCharFrame().includes('File icons: mono-icons'));
 		await runCommand(t, 'Plugin manager');
 		await until(t, () => t.captureCharFrame().includes('Disable mono 1.0.0'));
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
 		).toEqual(manifest);
+		expect(
+			JSON.parse(readFileSync(join(process.env.XDG_CONFIG_HOME!, 'dune', 'config.json'), 'utf8'))
+				.iconTheme,
+		).toBe('mono-icons');
 	} finally {
 		globalThis.fetch = realFetch;
 	}
@@ -101,6 +108,8 @@ test('the palette can install a plugin from the market list', async () => {
 		await until(t, () => t.captureCharFrame().includes('Plugin market: 1 plugin'));
 		await runCommand(t, 'Install Mono 1.0.0 - quiet monochrome icons');
 		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.0.0'));
+		await until(t, () => t.captureCharFrame().includes('Use the Mono Icons file icons?'));
+		await pressEscape(t);
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),
@@ -145,6 +154,8 @@ test('the market list labels installed plugin updates', async () => {
 		await until(t, () => t.captureCharFrame().includes('Plugin market: 1 plugin'));
 		await runCommand(t, 'Update Mono 1.1.0');
 		await until(t, () => t.captureCharFrame().includes('Installed plugin mono 1.1.0'));
+		await until(t, () => t.captureCharFrame().includes('Use the Mono Icons file icons?'));
+		await pressEscape(t);
 
 		expect(
 			JSON.parse(readFileSync(join(USER_THEME_PLUGIN_DIR, 'mono/plugin.json'), 'utf8')),

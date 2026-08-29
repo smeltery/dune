@@ -19,6 +19,16 @@ import {
 import { isNewer } from '../../core/update';
 import type { Choice } from '../../ui/ChoiceModal';
 import { AppearancePluginsView } from '../../ui/overlays/AppearancePluginsView';
+import type { Prompt } from '../types';
+import { claimedAppearances, offerActivation } from './activation';
+
+export {
+	activatePluginChoice,
+	appearancesOf,
+	claimedAppearances,
+	choosePluginActivation,
+	offerActivation,
+} from './activation';
 
 function displayPath(path: string): string {
 	const home = homedir();
@@ -135,6 +145,8 @@ export function pickAppearancePlugin(
 		close: () => void;
 		installedPlugins: () => readonly InstalledMarketPlugin[];
 		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+		prompt: () => Prompt;
+		setPrompt: (prompt: Prompt) => void;
 	},
 ): void {
 	const [kind, id] = choice.split(':', 2);
@@ -213,16 +225,23 @@ export function pickAppearancePlugin(
 		reload: deps.reload,
 		say: deps.say,
 		afterInstall: deps.close,
+		appearance: deps.appearance,
+		prompt: deps.prompt,
+		setPrompt: deps.setPrompt,
 	});
 }
 
 export async function installMarketPlugin(
 	id: string,
 	deps: {
-		config: Pick<Config, 'pluginRegistry'>;
+		config: Config;
 		reload: () => void;
 		say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 		afterInstall?: () => void;
+		appearance?: () => AppearancePluginLoad;
+		prompt?: () => Prompt;
+		setPrompt?: (prompt: Prompt) => void;
+		offerActivation?: boolean;
 	},
 ): Promise<void> {
 	const fetched = await fetchPlugin(id, { registry: deps.config.pluginRegistry });
@@ -232,6 +251,19 @@ export async function installMarketPlugin(
 	deps.reload();
 	deps.afterInstall?.();
 	deps.say(`Installed plugin ${id} ${fetched.version}`);
+	if (deps.offerActivation === false || !deps.appearance || !deps.prompt || !deps.setPrompt) {
+		return;
+	}
+	const plugin = deps.appearance().plugins.find((entry) => entry.id === id);
+	offerActivation({
+		pluginId: id,
+		name: plugin?.name ?? id,
+		claimed: claimedAppearances(fetched.body),
+		appearance: deps.appearance,
+		config: deps.config,
+		prompt: deps.prompt,
+		setPrompt: deps.setPrompt,
+	});
 }
 
 export function deleteAppearancePlugin(
@@ -266,6 +298,8 @@ export function createAppearancePluginUi(deps: {
 	editRegistry: () => void;
 	reload: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
+	prompt: () => Prompt;
+	setPrompt: (prompt: Prompt) => void;
 }) {
 	const [open, setOpen] = createSignal(false);
 	const [marketVersion, setMarketVersion] = createSignal(0);
@@ -308,6 +342,8 @@ export function createAppearancePluginUi(deps: {
 				installedPlugins: () =>
 					installedMarketPlugins(deps.appearance(), loadLocalLspServers(deps.rootDir).plugins),
 				say: deps.say,
+				prompt: deps.prompt,
+				setPrompt: deps.setPrompt,
 			}),
 		delete: (choice: string) =>
 			deleteAppearancePlugin(choice, {
@@ -340,6 +376,8 @@ export function createAppearancePluginUi(deps: {
 						installedPlugins: () =>
 							installedMarketPlugins(deps.appearance(), loadLocalLspServers(deps.rootDir).plugins),
 						say: deps.say,
+						prompt: deps.prompt,
+						setPrompt: deps.setPrompt,
 					})
 				}
 				onDelete={(choice) =>
