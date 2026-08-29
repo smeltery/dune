@@ -72,6 +72,7 @@ const GRIP = [0, 1, 2, 3, 4];
 interface AppViewProps {
 	rootDir: string;
 	config: Config;
+	iconTheme: string;
 	iconThemes: readonly IconTheme[];
 	tabs: string[];
 	activePath: string | null;
@@ -269,7 +270,7 @@ export function AppView(props: AppViewProps) {
 				onOverflow={() => props.onOverflowTabs()}
 				keybindings={props.config.keybindings}
 				tabIcons={props.config.tabIcons}
-				iconTheme={props.config.iconTheme}
+				iconTheme={props.iconTheme}
 				iconThemes={props.iconThemes}
 			/>
 			{/* Drag capture lives on the row, not the divider: the pointer leaves a
@@ -312,7 +313,7 @@ export function AppView(props: AppViewProps) {
 												expanded={props.expanded}
 												focused={props.focus === 'tree'}
 												width={props.treeWidth}
-												iconTheme={props.config.iconTheme}
+												iconTheme={props.iconTheme}
 												iconThemes={props.iconThemes}
 												gitStatus={props.gitStatus}
 												gitIgnored={props.gitIgnored}

@@ -2,6 +2,7 @@ import { createMemo, createSignal } from 'solid-js';
 
 import type { ChangeRow } from '../core/changeTree';
 import type { Config } from '../core/config';
+import { ICON_THEMES } from '../core/config';
 import type { AppearancePluginLoad } from '../core/localThemes';
 import { loadLocalLspServers } from '../core/plugins/localLspServers';
 import type { ConflictSide } from '../core/git/conflicts';
@@ -23,6 +24,7 @@ import type { Focus, FoldOpRequest, LineOpRequest, Prompt } from './types';
 export function createAppCommands(deps: {
 	config: Config;
 	rootDir: string;
+	iconTheme: () => string;
 	saveActive: () => void;
 	saveAll: () => void;
 	saveWithoutFormatting: () => void;
@@ -65,6 +67,9 @@ export function createAppCommands(deps: {
 	applyTheme: (name: ThemeName) => void;
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
+	applyIconTheme: (id: string) => void;
+	previewIcons: (id: string) => void;
+	cancelIconPreview: () => void;
 	toggleMarkdown: () => void;
 	togglePreview: () => void;
 	toggleWrap: () => void;
@@ -289,6 +294,9 @@ export function createAppCommands(deps: {
 				setTheme: deps.applyTheme,
 				previewTheme: deps.previewTheme,
 				cancelThemePreview: deps.cancelThemePreview,
+				setIconTheme: deps.applyIconTheme,
+				previewIcons: deps.previewIcons,
+				cancelIconPreview: deps.cancelIconPreview,
 				lineOp: (op) => deps.setLineOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				foldOp: (op) => deps.setFoldOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
 				resolveMergeConflict: deps.resolveMergeConflict,
@@ -365,6 +373,17 @@ export function createAppCommands(deps: {
 			{
 				vimEnabled: deps.config.vim,
 				activeTheme: deps.config.theme,
+				activeIconTheme: deps.iconTheme(),
+				iconThemes: [
+					...ICON_THEMES.map((id) => ({
+						id,
+						name: id === 'none' ? 'none' : 'Unicode shapes',
+					})),
+					...deps.appearanceVersion().iconThemes.map((theme) => ({
+						id: theme.id,
+						name: theme.name,
+					})),
+				],
 				tabSize: deps.config.tabSize,
 				wrap: deps.config.wrap,
 				trimOnSave: deps.config.trimOnSave,
