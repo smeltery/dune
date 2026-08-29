@@ -483,7 +483,6 @@ export function EditorPane(props: EditorPaneProps) {
 		toggleCommentLines,
 		moveSelectedLines,
 		duplicateSelectedLines,
-		deleteSelectedLines,
 		scrollPage,
 		centerCursorLine,
 		beforeEdit: (key) => folds.releaseFoldForEdit(key),
