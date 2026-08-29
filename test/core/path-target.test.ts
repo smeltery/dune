@@ -40,6 +40,25 @@ test('resolvePathToken handles relative, root, index, and tsconfig alias paths',
 	expect(resolvePathToken('react', fromDir, dir)).toBe(null);
 });
 
+test('resolvePathToken finds Vue, Svelte, Astro, and stylesheet targets', () => {
+	const dir = fixture({
+		'src/Widget.vue': '',
+		'src/Card.svelte': '',
+		'src/Page.astro': '',
+		'src/theme.css': '',
+		'src/tokens.scss': '',
+		'src/util.mts': '',
+	});
+	const fromDir = join(dir, 'src');
+
+	expect(resolvePathToken('./Widget', fromDir, dir)).toBe(join(dir, 'src/Widget.vue'));
+	expect(resolvePathToken('./Card', fromDir, dir)).toBe(join(dir, 'src/Card.svelte'));
+	expect(resolvePathToken('./Page', fromDir, dir)).toBe(join(dir, 'src/Page.astro'));
+	expect(resolvePathToken('./theme', fromDir, dir)).toBe(join(dir, 'src/theme.css'));
+	expect(resolvePathToken('./tokens', fromDir, dir)).toBe(join(dir, 'src/tokens.scss'));
+	expect(resolvePathToken('./util', fromDir, dir)).toBe(join(dir, 'src/util.mts'));
+});
+
 test('resolvePathToken follows baseUrl without paths aliases', () => {
 	const dir = fixture({
 		'src/shared/util.ts': '',
