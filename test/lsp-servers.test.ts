@@ -31,6 +31,13 @@ test('language server resolution applies overrides and disables empty commands',
 		install: { kind: 'npm', packages: ['@vue/language-server', 'typescript@5'] },
 		settings: undefined,
 	});
+	expect(resolveServers('vue', {}).map((server) => server.id)).toEqual(['vue', 'vue-typescript']);
+	expect(
+		resolveServers('vue', {}).find((server) => server.id === 'vue-typescript')?.install,
+	).toEqual({
+		kind: 'npm',
+		packages: ['typescript-language-server', '@vue/typescript-plugin', 'typescript@5'],
+	});
 	expect(resolveServer('typescript', { typescript: ['deno', 'lsp'] })?.command).toEqual([
 		'deno',
 		'lsp',

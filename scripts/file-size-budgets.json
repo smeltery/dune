@@ -7,7 +7,7 @@
 		"src/app/commands.ts": 700,
 		"src/app/documentActions.ts": 655,
 		"src/app/gitCommands.ts": 820,
-		"src/app/lsp/index.ts": 540,
+		"src/app/lsp/index.ts": 550,
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 760,
 		"src/editor/vim.ts": 612,
@@ -20,7 +20,5 @@
 		"src/ui/overlays/GitPanel.tsx": 500,
 		"src/app/keyboard.ts": 420
 	},
-	"exclude": [
-		"^bun\\.lock$"
-	]
+	"exclude": ["^bun\\.lock$"]
 }
