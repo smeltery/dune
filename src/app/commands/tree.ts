@@ -58,6 +58,7 @@ export function createAppCommandTree(deps: {
 	toggleSidebar: () => void;
 	collapseSidebar: () => void;
 	toggleMarkdown: () => void;
+	togglePreview: () => void;
 	controls: {
 		withNode: (run: (node: TreeNode) => void) => () => void;
 		applyVim: (enabled: boolean) => void;
@@ -138,6 +139,7 @@ export function createAppCommandTree(deps: {
 		toggleSidebar: deps.toggleSidebar,
 		collapseSidebar: deps.collapseSidebar,
 		toggleMarkdown: deps.toggleMarkdown,
+		togglePreview: deps.togglePreview,
 		toggleWrap: deps.controls.toggleWrap,
 		toggleSidebarPosition: deps.controls.toggleSidebarPosition,
 		toggleDiffView: deps.controls.toggleDiffView,

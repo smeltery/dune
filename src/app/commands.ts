@@ -67,6 +67,7 @@ export interface CommandActions {
 	toggleDotfiles: () => void;
 	toggleGitignored: () => void;
 	toggleMarkdown: () => void;
+	togglePreview: () => void;
 	toggleWrap: () => void;
 	toggleSidebarPosition: () => void;
 	toggleDiffView: () => void;
@@ -286,6 +287,12 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					id: 'view.collapseSidebar',
 					label: 'Collapse folders in sidebar',
 					run: actions.collapseSidebar,
+				},
+				{
+					id: 'view.preview',
+					label: 'Preview file (no tab)',
+					hint: 'Space in tree',
+					run: actions.togglePreview,
 				},
 				{
 					id: 'view.markdown',
