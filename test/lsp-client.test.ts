@@ -112,6 +112,18 @@ describe('LSP client', () => {
 			textDocument: {
 				definition: { linkSupport: true },
 				diagnostic: { dynamicRegistration: false, relatedDocumentSupport: false },
+				completion: {
+					completionItem: {
+						insertReplaceSupport: true,
+						labelDetailsSupport: true,
+						documentationFormat: ['markdown', 'plaintext'],
+						deprecatedSupport: true,
+						tagSupport: { valueSet: [1] },
+						resolveSupport: {
+							properties: ['documentation', 'detail', 'additionalTextEdits'],
+						},
+					},
+				},
 			},
 		});
 		client.dispose();
