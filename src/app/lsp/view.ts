@@ -44,6 +44,18 @@ export function problemCounts(problems: readonly Problem[] | undefined) {
 	return { errors, warnings };
 }
 
+/** Worst diagnostic a tab should wear. Info and hints stay off the strip. */
+export type TabSeverity = 'error' | 'warning';
+
+export function tabSeverityOf(problems: readonly Problem[] | undefined): TabSeverity | null {
+	let worst: TabSeverity | null = null;
+	for (const problem of problems ?? []) {
+		if (problem.severity === 'error') return 'error';
+		if (problem.severity === 'warning') worst = 'warning';
+	}
+	return worst;
+}
+
 export function openProblemRows(paths: readonly string[], problems: Record<string, Problem[]>) {
 	return paths.flatMap((path) =>
 		(problems[path] ?? []).map((problem) => ({

@@ -42,6 +42,14 @@ const diagnosticsFor = (text: string): Diagnostic[] => {
 				message: "'unused' is declared but its value is never read",
 			});
 		}
+		const nag = lines[line]!.indexOf('nag');
+		if (nag >= 0) {
+			diagnostics.push({
+				range: { start: { line, character: nag }, end: { line, character: nag + 3 } },
+				severity: 2,
+				message: 'found nag',
+			});
+		}
 		const sprawl = lines[line]!.indexOf('sprawl');
 		if (sprawl >= 0 && line + 2 < lines.length) {
 			diagnostics.push({

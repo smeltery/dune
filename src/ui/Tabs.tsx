@@ -8,13 +8,19 @@ import type { IconTheme } from '../core/iconThemes';
 import { ui } from '../themes';
 import { builtinGlyph, themedGlyph } from './FileTree';
 import { ALT, effectiveShortcut } from './keys';
+import { problemColor, problemGlyph } from './problemMarks';
 import { useTooltip } from './tooltip';
+
+/** Worst diagnostic a tab's file carries. Info and hints are not a tab's business. */
+export type TabSeverity = 'error' | 'warning';
 
 export interface TabInfo {
 	path: string;
 	name: string;
 	dirty: boolean;
 	preview: boolean;
+	/** Worst diagnostic of the file, or null when it has none. */
+	severity: TabSeverity | null;
 }
 
 export interface TabsProps {
@@ -38,6 +44,8 @@ export interface TabsProps {
 const MAX_LABEL = 18;
 /** Padding, the dirty/close glyph and the separator around a label. */
 const CHROME = 5;
+/** The glyph slot before a label, and the space after it. */
+const SLOT = 2;
 const NAV_CHROME = 6;
 
 const shorten = (name: string) =>
@@ -45,6 +53,18 @@ const shorten = (name: string) =>
 
 /** The path's own file name, ignoring a rendered-markdown tab's `¶ ` label prefix. */
 const fileNameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
+
+/**
+ * One glyph before the label, or null for none: a diagnostic outranks the file
+ * icon rather than sitting beside it. Both are one cell, so a file that starts
+ * erroring while icons are on moves nothing — and where icons are off, which is
+ * the default, the mark is the only thing the slot is ever spent on.
+ */
+const glyphOf = (
+	tab: TabInfo,
+	icon: { glyph: string; color?: string } | null,
+): { glyph: string; color?: string } | null =>
+	tab.severity ? { glyph: problemGlyph(tab.severity), color: problemColor(tab.severity) } : icon;
 
 export function Tabs(props: TabsProps) {
 	const dimensions = useTerminalDimensions();
@@ -63,6 +83,11 @@ export function Tabs(props: TabsProps) {
 		const theme = props.iconThemes.find((entry) => entry.id === props.iconTheme);
 		return theme ? themedGlyph(node, false, theme) : builtinGlyph(node, false, props.iconTheme);
 	};
+	const iconFor = (path: string) => {
+		if (!props.tabIcons || props.iconTheme === 'none') return null;
+		const glyph = glyphFor(path);
+		return { glyph: glyph.glyph, color: glyph.color };
+	};
 
 	/**
 	 * Only the tabs that fit are rendered, scrolled to keep the active one in
@@ -72,8 +97,8 @@ export function Tabs(props: TabsProps) {
 		// The bar spans the terminal: the tree sits below it, not beside it. Taking
 		// the sidebar's width off the budget made tabs reflow on every resize.
 		const budget = Math.max(0, dimensions().width - NAV_CHROME);
-		const iconWidth = props.tabIcons && props.iconTheme !== 'none' ? 2 : 0;
-		const width = (tab: TabInfo) => shorten(tab.name).length + CHROME + iconWidth;
+		const width = (tab: TabInfo) =>
+			shorten(tab.name).length + CHROME + (tab.severity || iconFor(tab.path) ? SLOT : 0);
 
 		const active = Math.max(
 			0,
@@ -137,18 +162,15 @@ export function Tabs(props: TabsProps) {
 									paddingRight={1}
 									onMouseDown={() => props.onSelect(tab.path)}
 								>
-									<Show when={props.tabIcons && props.iconTheme !== 'none'}>
-										{() => {
-											const glyph = () => glyphFor(tab.path);
-											return (
-												<text
-													fg={glyph().color ?? ui.dim}
-													bg={bg()}
-													flexShrink={0}
-													content={`${glyph().glyph} `}
-												/>
-											);
-										}}
+									<Show when={glyphOf(tab, iconFor(tab.path))}>
+										{(mark: () => { glyph: string; color?: string }) => (
+											<text
+												fg={mark().color ?? (active() ? ui.dim : ui.faint)}
+												bg={bg()}
+												flexShrink={0}
+												content={`${mark().glyph} `}
+											/>
+										)}
 									</Show>
 									<text
 										fg={active() ? ui.activeTabFg : ui.inactiveTabFg}

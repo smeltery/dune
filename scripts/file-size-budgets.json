@@ -2,7 +2,7 @@
 	"default_lines": 500,
 	"files": {
 		"src/app/App.tsx": 975,
-		"src/app/AppView.tsx": 845,
+		"src/app/AppView.tsx": 850,
 		"src/app/review.ts": 540,
 		"src/app/commands.ts": 700,
 		"src/app/documentActions.ts": 655,
