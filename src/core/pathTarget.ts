@@ -2,8 +2,39 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, normalize, resolve } from 'node:path';
 
-const EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.md'];
-const INDEX_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json', '.md'];
+const EXTENSIONS = [
+	'',
+	'.ts',
+	'.tsx',
+	'.mts',
+	'.cts',
+	'.js',
+	'.jsx',
+	'.mjs',
+	'.cjs',
+	'.vue',
+	'.svelte',
+	'.astro',
+	'.json',
+	'.css',
+	'.scss',
+	'.md',
+];
+const INDEX_EXTENSIONS = [
+	'.ts',
+	'.tsx',
+	'.mts',
+	'.cts',
+	'.js',
+	'.jsx',
+	'.mjs',
+	'.cjs',
+	'.vue',
+	'.svelte',
+	'.astro',
+	'.json',
+	'.md',
+];
 const BARE_CHARS = /[A-Za-z0-9_@~./:$+-]/;
 
 export function pathTokenAt(line: string, col: number): string | null {
