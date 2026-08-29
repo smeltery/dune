@@ -177,6 +177,32 @@ test('settings accepts newly bindable review and fold commands', async () => {
 		'editor.foldAll': 'F2',
 		'problems.detail': `Ctrl+${ALT}+U`,
 	});
+
+	await gotoRow(t, 'Add/update shortcut');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('tabs.next = F3'));
+	await press(t, (input) => input.pressEnter());
+	await gotoRow(t, 'Add/update shortcut');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('editor.lineStart = F4'));
+	await press(t, (input) => input.pressEnter());
+	expect(saved().keybindings).toEqual({
+		'editor.foldAll': 'F2',
+		'problems.detail': `Ctrl+${ALT}+U`,
+		'tabs.next': 'F3',
+		'editor.lineStart': 'F4',
+	});
+});
+
+test('a custom binding jumps to the start of the line', async () => {
+	const dir = fixture({ 'a.ts': 'const a = 1\n' });
+	const t = await launch(dir, { keybindings: { 'editor.lineStart': 'F2' } });
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => input.pressArrow('right'));
+	await press(t, (input) => input.pressArrow('right'));
+	await press(t, (input) => void input.pressKeys([F2]));
+	expect(t.captureCharFrame()).toContain('Ln 1, Col 1');
 });
 
 test('a custom binding deletes the current line', async () => {

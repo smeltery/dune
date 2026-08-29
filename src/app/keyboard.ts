@@ -48,7 +48,7 @@ export function useAppKeyboard(deps: {
 	saveActive: () => void;
 	saveAll: () => void;
 	formatActive: () => void;
-	lineOp: (op: 'delete') => void;
+	lineOp: (op: 'delete' | 'lineHome') => void;
 	toggleWrap: () => void;
 	toggleSidebarPosition: () => void;
 	toggleDiffView: () => void;
@@ -107,6 +107,7 @@ export function useAppKeyboard(deps: {
 		'file.saveAll': deps.saveAll,
 		'editor.format': deps.formatActive,
 		'editor.deleteLine': () => deps.lineOp('delete'),
+		'editor.lineStart': () => deps.lineOp('lineHome'),
 		'editor.fold': () => deps.foldOp('fold'),
 		'editor.unfold': () => deps.foldOp('unfold'),
 		'editor.foldAll': () => deps.foldOp('foldAll'),
@@ -114,6 +115,8 @@ export function useAppKeyboard(deps: {
 		'editor.resolveConflict': deps.resolveConflict,
 		'editor.nextConflict': deps.nextConflict,
 		'tabs.switch': () => deps.setPicker('tabs'),
+		'tabs.next': () => deps.switchTab(1),
+		'tabs.prev': () => deps.switchTab(-1),
 		'navigation.back': deps.navigateBack,
 		'navigation.forward': deps.navigateForward,
 		'tabs.reopen': deps.reopenTab,
@@ -222,6 +225,9 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && chord(key) && k === 'd' && !customizes('editor.deleteLine')) {
 			return claim(() => deps.lineOp('delete'));
 		}
+		if (key.ctrl && chord(key) && k === 'b' && !customizes('editor.lineStart')) {
+			return claim(() => deps.lineOp('lineHome'));
+		}
 		if (key.ctrl && chord(key) && k === 'u' && !customizes('editor.resolveConflict')) {
 			return claim(deps.resolveConflict);
 		}
@@ -251,8 +257,12 @@ export function useAppKeyboard(deps: {
 		}
 		if (key.ctrl && chord(key) && k === 'm' && !customizes('view.markdown'))
 			return claim(deps.toggleMarkdown);
-		if (key.ctrl && (k === 'pageup' || k === 'left')) return claim(() => deps.switchTab(-1));
-		if (key.ctrl && (k === 'pagedown' || k === 'right')) return claim(() => deps.switchTab(1));
+		if (key.ctrl && (k === 'pageup' || k === 'left') && !customizes('tabs.prev')) {
+			return claim(() => deps.switchTab(-1));
+		}
+		if (key.ctrl && (k === 'pagedown' || k === 'right') && !customizes('tabs.next')) {
+			return claim(() => deps.switchTab(1));
+		}
 		if (deps.focus() === 'editor') {
 			const vimOwnsEscape = deps.config.vim && deps.vimMode() !== 'normal';
 			if (k === 'escape' && deps.sidebar() && !vimOwnsEscape) deps.focusTree();
