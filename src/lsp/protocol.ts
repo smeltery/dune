@@ -91,6 +91,13 @@ export function severityOf(diagnostic: Diagnostic): ProblemSeverity {
 	return 'error';
 }
 
+const TAG_UNNECESSARY = 1;
+const TAG_DEPRECATED = 2;
+
 export function isUnnecessary(diagnostic: Diagnostic): boolean {
-	return diagnostic.tags?.includes(1) ?? false;
+	return diagnostic.tags?.includes(TAG_UNNECESSARY) ?? false;
+}
+
+export function isDeprecated(diagnostic: Diagnostic): boolean {
+	return diagnostic.tags?.includes(TAG_DEPRECATED) ?? false;
 }

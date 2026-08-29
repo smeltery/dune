@@ -13,6 +13,7 @@ const problem = (over: Partial<Problem>): Problem => ({
 	endCol: 0,
 	severity: 'error',
 	unnecessary: false,
+	deprecated: false,
 	message: 'boom',
 	...over,
 });

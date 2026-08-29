@@ -13,7 +13,7 @@ import {
 } from '../src/lsp/completion';
 import { normalizeDefinition } from '../src/lsp/definition';
 import type { CompletionItem } from '../src/lsp/protocol';
-import { isUnnecessary, severityOf } from '../src/lsp/protocol';
+import { isDeprecated, isUnnecessary, severityOf } from '../src/lsp/protocol';
 
 describe('normalizeCompletion', () => {
 	test('normalizes arrays and completion lists', () => {
@@ -79,6 +79,15 @@ describe('diagnostic protocol mapping', () => {
 		expect(severityOf({ ...diagnostic, severity: 4 })).toBe('hint');
 		expect(isUnnecessary(diagnostic)).toBe(false);
 		expect(isUnnecessary({ ...diagnostic, tags: [2, 1] })).toBe(true);
+	});
+
+	test('maps the Deprecated tag', () => {
+		const diagnostic = {
+			range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
+			message: 'x',
+		};
+		expect(isDeprecated(diagnostic)).toBe(false);
+		expect(isDeprecated({ ...diagnostic, tags: [2] })).toBe(true);
 	});
 });
 

@@ -761,6 +761,7 @@ export function App(props: AppTypes.AppProps) {
 				completion={completion.request()}
 				gitLines={gitLines()}
 				problems={problemUi.lines()}
+				problemRanges={activePath() ? (lsp.problems[activePath()!] ?? []) : []}
 				reviews={review.marks()}
 				problemCounts={problemUi.counts()}
 				problemChoices={problemUi.choices()}
