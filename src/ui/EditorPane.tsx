@@ -239,14 +239,16 @@ export function EditorPane(props: EditorPaneProps) {
 				appliedLines.delete(line);
 			}
 		}
-		ensureSegments(from, to);
 		const indexed = problemsByLine();
 		for (let row = from; row <= to; row++) {
 			if (appliedLines.has(row)) continue;
 			appliedLines.add(row);
-			const text = parsedLine(row) || lineTextAt(row);
-			for (const segment of byLine.get(row) ?? []) editor.addHighlight(row, inCells(segment, text));
-			markProblemSpans(editor, byLine, indexed, row, folds.realLine(row), text);
+			const line = folds.realLine(row);
+			ensureSegments(line, line);
+			const text = parsedLine(line) || lineTextAt(row);
+			for (const segment of byLine.get(line) ?? [])
+				editor.addHighlight(row, inCells(segment, text));
+			markProblemSpans(editor, byLine, indexed, row, line, text);
 		}
 	};
 	const scrollTo = (wanted: number) => {
