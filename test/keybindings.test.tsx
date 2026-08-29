@@ -52,6 +52,7 @@ test('custom shortcut parsing accepts terminal-friendly spellings', () => {
 test('custom shortcut validation rejects text input and reserved control bytes', () => {
 	expect(bindingProblem(parseChord('O')!)).toBe('A shortcut needs Ctrl or a function key');
 	expect(bindingProblem(parseChord('Ctrl+C')!)).toBe('Reserved terminal chord');
+	expect(bindingProblem(parseChord('Ctrl+Space')!)).toBe('Reserved terminal chord');
 	expect(bindingProblem(parseChord('Ctrl+Alt+O')!)).toBeNull();
 });
 

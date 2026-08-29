@@ -39,6 +39,23 @@ describe('LSP completions in the editor', () => {
 		await until(t, () => frame(t).includes('duneAlpha()'));
 	});
 
+	test('Ctrl+Space and NUL ask for completions in the editor', async () => {
+		const dir = fixture({ 'a.ts': '' });
+		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });
+
+		await press(t, (input) => void input.typeText('dune'));
+		await press(t, (input) => input.pressKey(' ', { ctrl: true }));
+		await until(t, () => frame(t).includes('duneAlpha'));
+		expect(frame(t)).toContain('duneAlpha');
+
+		await pressEscape(t);
+		await press(t, (input) => {
+			input.pressKey('\u0000');
+		});
+		await until(t, () => frame(t).includes('duneAlpha'));
+		expect(frame(t)).toContain('duneAlpha');
+	});
+
 	test('resolves a completion before applying it', async () => {
 		const dir = fixture({ 'a.ts': '' });
 		const t = await launch(dir, lspConfig, {}, { openFile: join(dir, 'a.ts') });

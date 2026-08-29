@@ -426,6 +426,7 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 				{
 					id: 'editor.complete',
 					label: 'Show completions',
+					hint: 'Ctrl+Space',
 					run: actions.completion,
 				},
 				{
