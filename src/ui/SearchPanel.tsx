@@ -3,13 +3,23 @@ import { basename, relative } from 'node:path';
 import { TextAttributes } from '@opentui/core';
 import type { KeyEvent } from '@opentui/core';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
-import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, For, Index, on, onCleanup, Show } from 'solid-js';
 
+import { readFile } from '../core/fs';
 import type { Context, Match, SearchOptions } from '../core/search';
-import { buildQuery, contextAround, contextIn, searchProject, searchText } from '../core/search';
+import { buildQuery, contextIn, searchProject, searchText } from '../core/search';
+import type { Highlighted } from '../languages/highlight';
 import { ui } from '../themes';
 import { modalWidth, PAD } from './modal';
 import { Overlay } from './Overlay';
+import {
+	adaptiveContextLines,
+	parsePreviewSource,
+	PREVIEW_MIN_HEIGHT,
+	previewLineSpans,
+	previewRowBudget,
+	SLACK,
+} from './overlays/searchPreview';
 import { TextInput } from './TextInput';
 
 export type SearchScope = 'file' | 'project';
@@ -34,9 +44,6 @@ export interface SearchPanelProps {
 }
 
 export const MIN_QUERY = 2;
-
-/** Lines either side of the selected match in the preview. */
-const CONTEXT = 2;
 
 /**
  * A project scan reads every file in the tree — around 90ms across 2 600 files, and
@@ -208,21 +215,59 @@ export function SearchPanel(props: SearchPanelProps) {
 	 * is written — which is the whole reason to look at the list before pressing Enter.
 	 */
 	const swap = () => (replacing() ? replacement() : '');
-	const contextForProjectMatch = (match: Match): Context | null => {
-		const buffered = props.buffers?.().get(match.path);
-		return buffered != null
-			? contextIn(buffered, match.line, CONTEXT)
-			: contextAround(match.path, match.line, CONTEXT);
-	};
+	/** Rows the panel spends on everything that is neither the list nor the preview. */
+	const chromeRows = () => 7 + (replacing() ? 1 : 0);
+	/**
+	 * How far the preview reaches either side of the hit. It grows with the terminal:
+	 * the preview is how you decide whether this is the match you were after, and on
+	 * a tall window there is no reason to answer that from five lines.
+	 */
+	const contextLines = () => adaptiveContextLines(dimensions().height, chromeRows());
+
+	type Source = { path: string; text: string } | null;
+	const source = createMemo<Source, Source>(
+		() => {
+			const match = current();
+			if (!match) return null;
+			if (props.scope !== 'project') return { path: match.path, text: props.activeContent };
+			const buffered = props.buffers?.().get(match.path);
+			if (buffered != null) return { path: match.path, text: buffered };
+			try {
+				return { path: match.path, text: readFile(match.path) };
+			} catch {
+				return null;
+			}
+		},
+		null,
+		// Stepping between two matches in one file is not a new document; without this
+		// the parse below would be restarted, and the colours dropped, on every step.
+		{ equals: (a, b) => a?.path === b?.path && a?.text === b?.text },
+	);
 
 	/** Surroundings of the selected match, or null when there is no room to show them. */
 	const preview = createMemo<Context | null>(() => {
 		const match = current();
-		if (!match || dimensions().height < 18) return null;
-		return props.scope === 'project'
-			? contextForProjectMatch(match)
-			: contextIn(props.activeContent, match.line, CONTEXT);
+		const file = source();
+		if (!match || !file || dimensions().height < PREVIEW_MIN_HEIGHT) return null;
+		return contextIn(file.text, match.line, contextLines());
 	});
+
+	/** The parsed document behind the preview's colours, once it lands. */
+	const [parsed, setParsed] = createSignal<Highlighted | null>(null);
+
+	createEffect(
+		on(source, (file) => {
+			setParsed(null);
+			if (!file) return;
+			let dropped = false;
+			onCleanup(() => {
+				dropped = true;
+			});
+			void parsePreviewSource(file.path, file.text, () => dropped).then((doc) => {
+				if (!dropped) setParsed(doc);
+			});
+		}),
+	);
 
 	/**
 	 * Rows the list may use. Named apart from `modal.ts`'s `listRows` on purpose: this
@@ -231,7 +276,7 @@ export function SearchPanel(props: SearchPanelProps) {
 	 * but a list of two rows is still a list.
 	 */
 	const resultRows = () => {
-		const chrome = 7 + (replacing() ? 1 : 0) + (preview() ? CONTEXT * 2 + 2 : 0);
+		const chrome = chromeRows() + SLACK + (preview() ? previewRowBudget(contextLines()) : 0);
 		return Math.max(2, Math.min(18, dimensions().height - chrome));
 	};
 
@@ -246,6 +291,17 @@ export function SearchPanel(props: SearchPanelProps) {
 			rows: all.slice(Math.max(0, start), Math.max(0, start) + size),
 		};
 	});
+
+	const previewRoom = () => contentWidth() - 6;
+	const lineSpans = (line: string, at: number) =>
+		previewLineSpans({
+			line,
+			at,
+			match: current() ?? null,
+			swap: swap(),
+			room: previewRoom(),
+			doc: parsed(),
+		});
 
 	/** Ctrl+C / Ctrl+W / Ctrl+R flips an option; the results recompute from scratch. */
 	const toggleOption = (name: keyof SearchOptions) => {
@@ -440,69 +496,42 @@ export function SearchPanel(props: SearchPanelProps) {
 				<Show when={preview()}>
 					{(around: () => Context) => (
 						<box flexDirection="column" backgroundColor={ui.bg} marginTop={1}>
-							<For each={around().lines}>
+							{/* The list and the preview are both source lines on near-identical
+                  backgrounds; without a rule between them the eye reads one column of
+                  code where there are two unrelated ones. */}
+							<text fg={ui.dim} bg={ui.bg} content={'─'.repeat(Math.max(0, contentWidth()))} />
+							{/* Index, not For: the rows are a fixed column whose *values* change as
+                  the selection moves, and keying by value tears every line down and
+                  rebuilds it on each step. */}
+							<Index each={around().lines}>
 								{(line, i) => {
-									const at = () => around().start + i();
+									const at = () => around().start + i;
 									const isMatch = () => at() === current()?.line;
+									const bg = () => (isMatch() ? ui.currentLine : ui.bg);
 									return (
-										<box flexDirection="row" backgroundColor={isMatch() ? ui.currentLine : ui.bg}>
+										<box flexDirection="row" backgroundColor={bg()}>
 											<text
 												fg={ui.gutter}
-												bg={isMatch() ? ui.currentLine : ui.bg}
+												bg={bg()}
 												flexShrink={0}
 												content={`${`${at() + 1}`.padStart(5)} `}
 											/>
-											<box flexGrow={1} backgroundColor={isMatch() ? ui.currentLine : ui.bg}>
-												{/* The selected line carries the same before/after as its row
-                            above it, or the two would disagree about what the file is
-                            about to say. */}
-												<Show
-													when={isMatch() && swap() && current()}
-													fallback={
-														<text
-															fg={isMatch() ? ui.text : ui.faint}
-															bg={isMatch() ? ui.currentLine : ui.bg}
-															content={line.slice(0, contentWidth() - 6)}
-														/>
-													}
-												>
-													{(match: () => Match) => (
-														<box flexDirection="row" backgroundColor={ui.currentLine}>
-															<text
-																fg={ui.text}
-																bg={ui.currentLine}
-																flexShrink={0}
-																content={line.slice(0, match().col)}
-															/>
-															<text
-																fg={ui.gitDeleted}
-																bg={ui.currentLine}
-																flexShrink={0}
-																content={line.slice(match().col, match().col + match().length)}
-																attributes={TextAttributes.STRIKETHROUGH}
-															/>
-															<text
-																fg={ui.gitAdded}
-																bg={ui.currentLine}
-																flexShrink={0}
-																content={swap()}
-																attributes={TextAttributes.BOLD}
-															/>
-															<box flexGrow={1} backgroundColor={ui.currentLine}>
-																<text
-																	fg={ui.text}
-																	bg={ui.currentLine}
-																	content={line.slice(match().col + match().length)}
-																/>
-															</box>
-														</box>
-													)}
-												</Show>
-											</box>
+											<Index each={lineSpans(line(), at())}>
+												{(span) => (
+													<text
+														fg={span().fg}
+														bg={bg()}
+														flexShrink={0}
+														content={span().text}
+														attributes={span().attributes}
+													/>
+												)}
+											</Index>
+											<box flexGrow={1} backgroundColor={bg()} />
 										</box>
 									);
 								}}
-							</For>
+							</Index>
 						</box>
 					)}
 				</Show>

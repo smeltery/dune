@@ -106,6 +106,28 @@ describe('the preview under the results', () => {
 		// And the whole panel still fits the screen.
 		expect(t.captureCharFrame().split('\n').length).toBeLessThanOrEqual(17);
 	});
+
+	test('grows the preview on a tall terminal', async () => {
+		const countContext = (t: Harness) =>
+			panel(t).filter((row) => row.includes('// capture notes') || row.includes('const other'))
+				.length;
+
+		const short = await search('other', { height: 30 });
+		const tall = await search('other', { height: 60 });
+
+		// `other` has one hit in beta.ts; taller window keeps more neighbours.
+		expect(countContext(tall)).toBeGreaterThanOrEqual(countContext(short));
+		expect(countContext(tall)).toBeGreaterThan(0);
+	});
+
+	test('scrolls a long hit line so the match is visible in the preview', async () => {
+		const t = await search('capture');
+		const rows = panel(t);
+		// Selected match is docs/long.md — preview should show … and the query.
+		const preview = rows.filter((row) => /^\s+1\s/.test(row) && row.includes('capture'));
+		expect(preview.some((row) => row.includes('…'))).toBe(true);
+		expect(preview.some((row) => row.includes('capture'))).toBe(true);
+	});
 });
 
 describe('folding a file in the results', () => {
@@ -116,7 +138,10 @@ describe('folding a file in the results', () => {
 		let rows = panel(t);
 
 		expect(rows.some((row) => row.includes('docs/long.md') && row.includes('▸'))).toBe(true);
-		expect(rows.some((row) => row.includes('…') && row.includes('capture'))).toBe(false);
+		// The folded match row is gone from the list. The preview under the list may
+		// still show the hit (with its own … when the line is long), so that is not
+		// what this checks.
+		expect(rows.some((row) => row.includes('docs/long.md') && row.includes('▾'))).toBe(false);
 		// The other files are untouched.
 		expect(rows.some((row) => row.includes('const capture = 1'))).toBe(true);
 
