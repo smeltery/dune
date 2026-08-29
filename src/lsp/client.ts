@@ -34,6 +34,12 @@ export interface LspClientOptions {
 	onFail: (reason: string, missing: boolean) => void;
 	onRefreshDiagnostics?: () => void;
 	/**
+	 * Answer a `tsserver/request` from a hybrid server (Vue): put the raw
+	 * command to a sibling that drives tsserver. Must always resolve — leaving
+	 * the request open hangs completion in `.vue` files.
+	 */
+	onTsserverRequest?: (command: string, args: unknown) => Promise<unknown>;
+	/**
 	 * A line for the status page's log: a stderr line, a window/logMessage, or a
 	 * lifecycle event. Fires whether or not anyone is looking — the page opens
 	 * after the interesting part, which is exactly when the log is wanted.
@@ -88,6 +94,7 @@ export function spawnLspClient(options: LspClientOptions) {
 	const queued: RpcMessage[] = [];
 	const versions = new Map<string, number>();
 	const pendingPulls = new Set<string>();
+	const commands = new Set<string>();
 
 	const send = (message: RpcMessage) => {
 		if (child.stdin?.writable) child.stdin.write(encodeMessage(message));
@@ -131,6 +138,23 @@ export function spawnLspClient(options: LspClientOptions) {
 		if (reason !== null && !disposed) options.onFail(reason, missing);
 	};
 
+	const answerTsserverRequests = async (params: unknown) => {
+		if (!Array.isArray(params)) return;
+		const answers: [number, unknown][] = [];
+		for (const entry of params as unknown[]) {
+			if (!Array.isArray(entry)) continue;
+			const [id, command, args] = entry as [number, string, unknown];
+			let body: unknown = null;
+			try {
+				body = (await options.onTsserverRequest?.(command, args)) ?? null;
+			} catch {
+				body = null;
+			}
+			answers.push([id, body]);
+		}
+		if (answers.length > 0) notify('tsserver/response', answers);
+	};
+
 	const answerClientRequest = (message: RpcMessage) => {
 		if (message.method === 'workspace/configuration') {
 			const items = (message.params as { items?: unknown[] } | undefined)?.items ?? [];
@@ -160,6 +184,10 @@ export function spawnLspClient(options: LspClientOptions) {
 		if (message.method === 'textDocument/publishDiagnostics') {
 			const params = message.params as { uri: string; diagnostics?: Diagnostic[] };
 			options.onDiagnostics(params.uri, params.diagnostics ?? []);
+			return;
+		}
+		if (message.method === 'tsserver/request') {
+			void answerTsserverRequests(message.params);
 			return;
 		}
 		if (message.method === 'workspace/diagnostic/refresh') {
@@ -235,11 +263,15 @@ export function spawnLspClient(options: LspClientOptions) {
 					capabilities?: {
 						completionProvider?: { resolveProvider?: boolean };
 						diagnosticProvider?: unknown;
+						executeCommandProvider?: { commands?: string[] };
 					};
 				} | null
 			)?.capabilities;
 			resolveProvider = capabilities?.completionProvider?.resolveProvider === true;
 			pullProvider = capabilities?.diagnosticProvider != null;
+			for (const command of capabilities?.executeCommandProvider?.commands ?? []) {
+				commands.add(command);
+			}
 			send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 			state = 'ready';
 			log('event', `initialized — diagnostics ${pullProvider ? 'pulled' : 'published'}`);
@@ -264,6 +296,15 @@ export function spawnLspClient(options: LspClientOptions) {
 		ready: () => state === 'ready',
 		state: () => state,
 		pullDiagnostics,
+
+		supportsCommand(command: string): boolean {
+			return commands.has(command);
+		},
+
+		executeCommand(command: string, args: unknown[]): Promise<unknown> {
+			if (state !== 'ready') return Promise.resolve(null);
+			return request('workspace/executeCommand', { command, arguments: args }).catch(() => null);
+		},
 
 		openDocument(path: string, languageId: string, text: string) {
 			const uri = pathToFileURL(path).href;

@@ -19,7 +19,7 @@ import {
 	removeServer,
 	SERVER_ROOT,
 } from '../../lsp/install';
-import { projectCommand } from '../../lsp/project';
+import { projectCommand, vuePluginLocation, VUE_TYPESCRIPT_PLUGIN } from '../../lsp/project';
 import { isDeprecated, isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
 import {
@@ -31,6 +31,7 @@ import {
 } from '../../lsp/servers';
 import type { LspStatusRow, ServerLogLine, ServerState } from '../../lsp/status';
 import type { BufferState, Prompt, StatusMessage } from '../types';
+import { relayTsserverRequest, VUE_TYPESCRIPT } from './vueRelay';
 
 export type { LspStatusRow } from '../../lsp/status';
 
@@ -142,6 +143,14 @@ export function createAppLsp(deps: {
 	};
 
 	const initializationOptionsFor = (id: string): unknown => {
+		if (id === VUE_TYPESCRIPT) {
+			const location = vuePluginLocation(deps.rootDir, SERVER_ROOT);
+			if (location) {
+				return { plugins: [{ name: VUE_TYPESCRIPT_PLUGIN, location, languages: ['vue'] }] };
+			}
+			deps.say(`LSP: ${VUE_TYPESCRIPT_PLUGIN} not installed — no TypeScript in .vue`, 'warn');
+			return undefined;
+		}
 		if (id !== 'typescript') return undefined;
 		const tsdk = deps.config.typescriptTsdk.trim();
 		return tsdk ? { tsserver: { path: tsdk } } : undefined;
@@ -189,6 +198,8 @@ export function createAppLsp(deps: {
 			settings: resolved.settings,
 			onDiagnostics: onDiagnosticsFrom(resolved.id),
 			onRefreshDiagnostics: () => refreshPulls?.(resolved.id),
+			onTsserverRequest: (command, args) =>
+				relayTsserverRequest(resolved.id, command, args, clients, availableServers()),
 			onLog: (entry) => appendLog(resolved.id, entry),
 			onFail: (reason, missing) => {
 				clients.set(resolved.id, null);

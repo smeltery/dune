@@ -100,6 +100,12 @@ export const DEFAULT_SERVERS: ServerSpec[] = [
 		filetypes: ['vue'],
 		install: npm('@vue/language-server', 'typescript@5'),
 	},
+	{
+		id: 'vue-typescript',
+		command: ['typescript-language-server', '--stdio'],
+		filetypes: ['vue'],
+		install: npm('typescript-language-server', '@vue/typescript-plugin', 'typescript@5'),
+	},
 ];
 
 export function serverSpecs(extraServers: readonly ServerSpec[] = []): ServerSpec[] {
