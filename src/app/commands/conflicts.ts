@@ -1,9 +1,11 @@
 import type { Command, CommandActions } from '../commands';
+import { ALT } from '../../ui/keys';
 
 export const conflictCommands = (actions: CommandActions): Command[] => [
 	{
 		id: 'editor.resolveConflict',
 		label: 'Resolve conflict at cursor',
+		hint: `Ctrl+${ALT}+U`,
 		run: actions.resolveMergeConflict,
 	},
 	{
@@ -17,6 +19,11 @@ export const conflictCommands = (actions: CommandActions): Command[] => [
 		run: actions.acceptIncomingChange,
 	},
 	{ id: 'editor.acceptBothChanges', label: 'Accept both changes', run: actions.acceptBothChanges },
-	{ id: 'editor.nextConflict', label: 'Next conflict', run: actions.nextMergeConflict },
+	{
+		id: 'editor.nextConflict',
+		label: 'Next conflict',
+		hint: `Ctrl+${ALT}+J`,
+		run: actions.nextMergeConflict,
+	},
 	{ id: 'editor.previousConflict', label: 'Previous conflict', run: actions.prevMergeConflict },
 ];

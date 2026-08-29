@@ -40,6 +40,8 @@ export const KEYBINDABLE_COMMANDS: ReadonlyArray<{ id: string; label: string }> 
 	{ id: 'editor.unfold', label: 'Unfold block at cursor' },
 	{ id: 'editor.foldAll', label: 'Fold everything' },
 	{ id: 'editor.unfoldAll', label: 'Unfold everything' },
+	{ id: 'editor.resolveConflict', label: 'Resolve conflict at cursor' },
+	{ id: 'editor.nextConflict', label: 'Next conflict' },
 	{ id: 'help', label: 'Keyboard shortcuts' },
 	{ id: 'quit', label: 'Quit' },
 ];

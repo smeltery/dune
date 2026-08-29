@@ -661,6 +661,8 @@ export function App(props: AppTypes.AppProps) {
 		toggleSidebarPosition: controls.toggleSidebarPosition,
 		toggleDiffView: controls.toggleDiffView,
 		foldOp: (op) => setFoldOp((prev) => ({ op, key: (prev?.key ?? 0) + 1 })),
+		resolveConflict: mergeConflicts.choose,
+		nextConflict: () => mergeConflicts.next(1),
 		say,
 		setAnchor,
 		setClipboard,
