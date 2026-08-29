@@ -30,6 +30,7 @@ import { ChangesView } from '../ui/ChangesView';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { DiffView } from '../ui/overlays/DiffView';
 import { EditorPane } from '../ui/EditorPane';
+import type { ProblemRange } from '../ui/EditorPane';
 import { FilePicker, type PickPosition } from '../ui/FilePicker';
 import { FileTree } from '../ui/FileTree';
 import { HelpOverlay } from '../ui/HelpOverlay';
@@ -101,6 +102,7 @@ interface AppViewProps {
 	completion: { key: number } | null;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	problemRanges: readonly ProblemRange[];
 	reviews: Map<number, { draft: boolean; label: string; text: string }>;
 	problemCounts: { errors: number; warnings: number };
 	problemChoices: Choice[];
@@ -513,6 +515,7 @@ export function AppView(props: AppViewProps) {
 													tabSize={props.config.tabSize}
 													gitLines={props.gitLines}
 													problems={props.problems}
+													problemRanges={props.problemRanges}
 													problemText={props.config.lspInline}
 													reviews={props.reviews}
 													reviewText={props.config.reviewInline}

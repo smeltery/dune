@@ -20,7 +20,7 @@ import {
 	SERVER_ROOT,
 } from '../../lsp/install';
 import { projectCommand } from '../../lsp/project';
-import { isUnnecessary, severityOf } from '../../lsp/protocol';
+import { isDeprecated, isUnnecessary, severityOf } from '../../lsp/protocol';
 import type { CompletionItem, Diagnostic, ProblemSeverity } from '../../lsp/protocol';
 import {
 	installHint,
@@ -42,6 +42,7 @@ export interface Problem {
 	endCol: number;
 	severity: ProblemSeverity;
 	unnecessary: boolean;
+	deprecated: boolean;
 	message: string;
 	source?: string;
 }
@@ -126,6 +127,7 @@ export function createAppLsp(deps: {
 				endCol: diagnostic.range.end.character,
 				severity: severityOf(diagnostic),
 				unnecessary: isUnnecessary(diagnostic),
+				deprecated: isDeprecated(diagnostic),
 				message: diagnostic.message,
 				source: diagnostic.source,
 			})),

@@ -34,7 +34,12 @@ import { createEditorCompletion } from './editorCompletion';
 import type { EditorCompletionProps } from './editorCompletion';
 import { createEditorLineActions } from './editorLineActions';
 import { createEditorLineCount, createEditorScrollMetrics } from './editorScrollMetrics';
+import { indexProblemRanges, markProblemSpans } from './editorProblemOverlays';
+import type { ProblemRange } from './editorProblemOverlays';
 import { buildInlineAnnotations, editorLineSigns, type ReviewMark } from './problemMarks';
+
+export type { ProblemRange } from './editorProblemOverlays';
+
 export interface EditorPaneProps extends EditorCompletionProps {
 	filetype?: string;
 	theme: ThemeName;
@@ -54,6 +59,7 @@ export interface EditorPaneProps extends EditorCompletionProps {
 	tabSize: number;
 	gitLines: Map<number, LineChange>;
 	problems: Map<number, { severity: ProblemSeverity; message: string }>;
+	problemRanges: readonly ProblemRange[];
 	problemText: boolean;
 	reviews: Map<number, ReviewMark>;
 	reviewText: boolean;
@@ -213,6 +219,12 @@ export function EditorPane(props: EditorPaneProps) {
 		const next = parsed.starts[line + 1];
 		return next === undefined ? parsed.content.slice(at) : parsed.content.slice(at, next - 1);
 	};
+	const lineTextAt = (row: number): string => {
+		if (!editor) return '';
+		const lines = editor.plainText.split('\n');
+		return lines[row] ?? '';
+	};
+	const problemsByLine = createMemo(() => indexProblemRanges(props.problemRanges));
 	const applyWindow = (force = false) => {
 		if (!editor) return;
 		syncViewport();
@@ -228,12 +240,13 @@ export function EditorPane(props: EditorPaneProps) {
 			}
 		}
 		ensureSegments(from, to);
-		for (let line = from; line <= to; line++) {
-			if (appliedLines.has(line)) continue;
-			appliedLines.add(line);
-			const text = parsedLine(line);
-			for (const segment of byLine.get(line) ?? [])
-				editor.addHighlight(line, inCells(segment, text));
+		const indexed = problemsByLine();
+		for (let row = from; row <= to; row++) {
+			if (appliedLines.has(row)) continue;
+			appliedLines.add(row);
+			const text = parsedLine(row) || lineTextAt(row);
+			for (const segment of byLine.get(row) ?? []) editor.addHighlight(row, inCells(segment, text));
+			markProblemSpans(editor, byLine, indexed, row, folds.realLine(row), text);
 		}
 	};
 	const scrollTo = (wanted: number) => {
@@ -412,6 +425,16 @@ export function EditorPane(props: EditorPaneProps) {
 			rowAtLine: layout.rowAtLine,
 		});
 	});
+	createEffect(
+		on(
+			() => props.problemRanges,
+			() => {
+				appliedLines.clear();
+				applyWindow(true);
+			},
+			{ defer: true },
+		),
+	);
 	const jumpToRow = (row: number) => {
 		const m = scrollMetrics();
 		if (!m || !editor) return;

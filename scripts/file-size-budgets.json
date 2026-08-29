@@ -11,7 +11,7 @@
 		"src/core/forge.ts": 515,
 		"src/core/git.ts": 760,
 		"src/editor/vim.ts": 612,
-		"src/ui/EditorPane.tsx": 660,
+		"src/ui/EditorPane.tsx": 680,
 		"src/ui/SearchPanel.tsx": 530,
 		"src/ui/ChangesView.tsx": 600,
 		"src/ui/overlays/DiffView.tsx": 380,

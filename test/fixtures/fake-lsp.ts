@@ -17,12 +17,40 @@ const diagnosticsFor = (text: string): Diagnostic[] => {
 	const lines = text.split('\n');
 	for (let line = 0; line < lines.length; line++) {
 		const col = lines[line]!.indexOf('oops');
-		if (col < 0) continue;
-		diagnostics.push({
-			range: { start: { line, character: col }, end: { line, character: col + 4 } },
-			severity: 1,
-			message: 'found oops',
-		});
+		if (col >= 0) {
+			diagnostics.push({
+				range: { start: { line, character: col }, end: { line, character: col + 4 } },
+				severity: 1,
+				message: 'found oops',
+			});
+		}
+		const stale = lines[line]!.indexOf('stale');
+		if (stale >= 0) {
+			diagnostics.push({
+				range: { start: { line, character: stale }, end: { line, character: stale + 5 } },
+				severity: 4,
+				tags: [2],
+				message: "'stale' is deprecated",
+			});
+		}
+		const unused = lines[line]!.indexOf('unused');
+		if (unused >= 0) {
+			diagnostics.push({
+				range: { start: { line, character: unused }, end: { line, character: unused + 6 } },
+				severity: 4,
+				tags: [1],
+				message: "'unused' is declared but its value is never read",
+			});
+		}
+		const sprawl = lines[line]!.indexOf('sprawl');
+		if (sprawl >= 0 && line + 2 < lines.length) {
+			diagnostics.push({
+				range: { start: { line, character: sprawl }, end: { line: line + 2, character: 1 } },
+				severity: 4,
+				tags: [2],
+				message: 'this whole block is deprecated',
+			});
+		}
 	}
 	return diagnostics;
 };

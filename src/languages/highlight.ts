@@ -1,19 +1,32 @@
 import '../core/assets';
-import { getTreeSitterClient, pathToFiletype, SyntaxStyle } from '@opentui/core';
-import type { StyleDefinitionInput } from '@opentui/core';
-import type { TreeSitterClient } from '@opentui/core';
+import {
+	getTreeSitterClient,
+	pathToFiletype,
+	resolveRenderLib,
+	SyntaxStyle,
+	TextAttributes,
+} from '@opentui/core';
+import type { RGBA, StyleDefinition, StyleDefinitionInput, TreeSitterClient } from '@opentui/core';
 
-import { syntaxTheme, ui } from '../themes';
+import { THEMES, activeTheme, syntaxTheme, ui } from '../themes';
 import { languageFor, languageGeneration, localFiletypeForName, vendoredLanguages } from './index';
 import type { Language } from './index';
 
 /** Two dots so it outranks any syntax capture on the same whitespace. */
 const INDENT_GUIDE = 'indent.guide';
 
+/** The Deprecated tag's span: crossed out, keeping its syntax colour. */
+export const DEPRECATED_GROUP = 'dune.problem.deprecated';
+
 let clientDead = false;
 let initPromise: Promise<TreeSitterClient | null> | null = null;
 let syntaxStyle: SyntaxStyle | null = null;
 let registeredGeneration = -1;
+/** Seeded ids for styles registered outside `styleDefs` (strikethrough). */
+const styleIdByGroup = new Map<string, number>();
+/** Memo of `group`+`base` → combined style id. Cleared whenever the table rebuilds. */
+const overlaidIds = new Map<string, number>();
+let definitionById: Map<number, StyleDefinition> | null = null;
 
 function registerVendoredParsers(client: TreeSitterClient): void {
 	registeredGeneration = languageGeneration();
@@ -30,19 +43,116 @@ function registerVendoredParsers(client: TreeSitterClient): void {
 	}
 }
 
+/** Opaque theme bg for mixing tints — `ui.bg` can be `transparent`. */
+function solidBg(): string {
+	return THEMES[activeTheme()]?.ui.bg ?? '#000000';
+}
+
+function mixColors(base: string, tint: string, t: number): string {
+	if (!/^#[0-9a-fA-F]{6}$/.test(base) || !/^#[0-9a-fA-F]{6}$/.test(tint)) return base;
+	const channel = (at: number) => {
+		const a = Number.parseInt(base.slice(at, at + 2), 16);
+		const b = Number.parseInt(tint.slice(at, at + 2), 16);
+		return Math.round(a + (b - a) * t)
+			.toString(16)
+			.padStart(2, '0');
+	};
+	return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
+/**
+ * Register a style whose only mark is a strikethrough — `SyntaxStyle.registerStyle`
+ * cannot express it (it drops everything but bold/italic/underline/dim), so the
+ * native table is written directly and `styleIdByGroup` is seeded for lookup.
+ */
+function registerStruckThrough(style: SyntaxStyle, group: string): void {
+	const id = struckThroughId(style, group, null);
+	if (id != null) styleIdByGroup.set(group, id);
+}
+
+function struckThroughId(style: SyntaxStyle, name: string, fg: RGBA | null): number | null {
+	try {
+		return resolveRenderLib().syntaxStyleRegister(
+			style.ptr,
+			name,
+			fg,
+			null,
+			TextAttributes.STRIKETHROUGH,
+		);
+	} catch {
+		return null;
+	}
+}
+
 /** Shared style table used by every editor buffer (built from the active theme). */
 export function getSyntaxStyle(): SyntaxStyle {
 	if (!syntaxStyle) {
+		styleIdByGroup.clear();
+		overlaidIds.clear();
+		definitionById = null;
+		const solid = solidBg();
 		syntaxStyle = SyntaxStyle.fromStyles({
 			...syntaxTheme,
 			[INDENT_GUIDE]: { bg: ui.indentGuide },
+			// Background-only severity tints — syntax colour stays; OpenTUI underline
+			// would take the text colour and read as a second louder highlight.
+			'dune.problem.error': { bg: mixColors(solid, ui.error, 0.16) },
+			'dune.problem.warning': { bg: mixColors(solid, ui.dirty, 0.13) },
+			'dune.problem.info': { bg: mixColors(solid, ui.dim, 0.1) },
+			'dune.problem.hint': { bg: mixColors(solid, ui.dim, 0.1) },
+			// Unnecessary fades toward the background instead of gaining a tint.
+			'dune.problem.unnecessary': { fg: mixColors(solid, ui.text, 0.4) },
 		});
+		registerStruckThrough(syntaxStyle, DEPRECATED_GROUP);
 	}
 	return syntaxStyle;
 }
 
 export function invalidateSyntaxStyle(): void {
 	syntaxStyle = null;
+	styleIdByGroup.clear();
+	overlaidIds.clear();
+	definitionById = null;
+}
+
+/**
+ * Style id for painting `group` over whatever `base` is painted in — the token's
+ * colour with the overlay's background. The native buffer replaces a cell's style
+ * rather than merging, so a bg-only tint without this would erase syntax colour.
+ */
+export function styleIdOver(group: string, base: number | null): number | null {
+	const plain = styleIdForGroup(group);
+	if (base == null || plain == null) return plain;
+	const key = `${group}${base}`;
+	const hit = overlaidIds.get(key);
+	if (hit !== undefined) return hit;
+	const id = registerOverlaid(group, base) ?? plain;
+	overlaidIds.set(key, id);
+	return id;
+}
+
+function registerOverlaid(group: string, base: number): number | null {
+	const ss = getSyntaxStyle();
+	const under = definitionForId(base);
+	if (!under?.fg) return null;
+	const name = `${group}${base}`;
+	if (group === DEPRECATED_GROUP) return struckThroughId(ss, name, under.fg);
+	const over = ss.getStyle(group);
+	if (!over || over.fg || !over.bg) return null;
+	return ss.registerStyle(name, { ...under, bg: over.bg });
+}
+
+function definitionForId(id: number): StyleDefinition | undefined {
+	const ss = getSyntaxStyle();
+	if (!definitionById) {
+		definitionById = new Map();
+		for (const name of ss.getRegisteredNames()) {
+			const at = ss.getStyleId(name);
+			const def = ss.getStyle(name);
+			if (at != null && def) definitionById.set(at, def);
+		}
+	}
+	return definitionById.get(id);
 }
 
 /**
@@ -104,6 +214,9 @@ export function highlightClient(): Promise<TreeSitterClient | null> {
  * ("type.builtin") to the least ("type").
  */
 export function styleIdForGroup(group: string): number | null {
+	getSyntaxStyle();
+	const seeded = styleIdByGroup.get(group);
+	if (seeded != null) return seeded;
 	const ss = getSyntaxStyle();
 	let g = group;
 	while (g.length > 0) {
