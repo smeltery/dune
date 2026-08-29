@@ -158,3 +158,42 @@ test('settings rejects an invalid shortcut edit', async () => {
 	expect(keybindings).not.toHaveProperty('save');
 	expect(t.captureCharFrame()).toContain('0 custom');
 });
+
+test('settings accepts newly bindable review and fold commands', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }));
+	await runCommand(t, 'Settings');
+	await gotoRow(t, 'Add/update shortcut');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('editor.foldAll = F2'));
+	await press(t, (input) => input.pressEnter());
+	expect(saved().keybindings).toEqual({ 'editor.foldAll': 'F2' });
+
+	await gotoRow(t, 'Add/update shortcut');
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.typeText('problems.detail = Ctrl+Alt+U'));
+	await press(t, (input) => input.pressEnter());
+	expect(saved().keybindings).toEqual({
+		'editor.foldAll': 'F2',
+		'problems.detail': `Ctrl+${ALT}+U`,
+	});
+});
+
+test('a custom binding deletes the current line', async () => {
+	const dir = fixture({ 'a.ts': 'one\ntwo\nthree\n' });
+	const t = await launch(dir, { keybindings: { 'editor.deleteLine': 'F2' } });
+	await press(t, (input) => input.pressArrow('down'));
+	await press(t, (input) => input.pressEnter());
+	await press(t, (input) => void input.pressKeys([F2]));
+	await press(t, (input) => input.pressKey('s', { ctrl: true }));
+
+	expect(await Bun.file(join(dir, 'a.ts')).text()).toBe('two\nthree\n');
+});
+
+test('a custom binding toggles word wrap', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const a = 1\n' }), {
+		keybindings: { 'view.wrap': 'F2' },
+		wrap: false,
+	});
+	await press(t, (input) => void input.pressKeys([F2]));
+	expect(saved().wrap).toBe(true);
+});

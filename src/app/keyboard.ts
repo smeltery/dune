@@ -46,7 +46,12 @@ export function useAppKeyboard(deps: {
 	copyPath: (path: string, kind: 'absolute' | 'relative') => void;
 	reopenTab: () => void;
 	saveActive: () => void;
+	saveAll: () => void;
 	formatActive: () => void;
+	lineOp: (op: 'delete') => void;
+	toggleWrap: () => void;
+	toggleSidebarPosition: () => void;
+	toggleDiffView: () => void;
 	say: (msg: string, tone?: 'info' | 'warn' | 'error') => void;
 	setAnchor: (path: string | null) => void;
 	setClipboard: (clipboard: { paths: string[]; mode: 'cut' | 'copy' }) => void;
@@ -86,10 +91,20 @@ export function useAppKeyboard(deps: {
 	foldOp: (op: 'fold' | 'unfold' | 'foldAll' | 'unfoldAll') => void;
 	expanded: () => Set<string>;
 }) {
+	const copyTarget = (kind: 'absolute' | 'relative') => {
+		const path =
+			deps.focus() === 'tree'
+				? (deps.selectedNode()?.path ?? deps.activePath())
+				: (deps.activePath() ?? deps.selectedNode()?.path);
+		if (path) deps.copyPath(path, kind);
+		else deps.say('No file to copy the path of', 'warn');
+	};
 	const customCommands: Record<string, () => void> = {
 		open: () => deps.setPicker('files'),
 		save: deps.saveActive,
+		'file.saveAll': deps.saveAll,
 		'editor.format': deps.formatActive,
+		'editor.deleteLine': () => deps.lineOp('delete'),
 		'editor.fold': () => deps.foldOp('fold'),
 		'editor.unfold': () => deps.foldOp('unfold'),
 		'editor.foldAll': () => deps.foldOp('foldAll'),
@@ -106,19 +121,16 @@ export function useAppKeyboard(deps: {
 		'file.new': () => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }),
 		'open.cursor': deps.openPathUnderCursor,
 		'file.newDir': () => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }),
-		'file.copyPath': () => {
-			const path =
-				deps.focus() === 'tree'
-					? (deps.selectedNode()?.path ?? deps.activePath())
-					: (deps.activePath() ?? deps.selectedNode()?.path);
-			if (path) deps.copyPath(path, 'absolute');
-			else deps.say('No file to copy the path of', 'warn');
-		},
+		'file.copyPath': () => copyTarget('absolute'),
+		'file.copyRelativePath': () => copyTarget('relative'),
 		'tabs.close': () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
 		'view.sidebar': deps.toggleSidebar,
+		'view.sidebarPosition': deps.toggleSidebarPosition,
 		'view.preview': deps.previewToggle,
 		'view.markdown': deps.toggleMarkdown,
+		'view.wrap': deps.toggleWrap,
 		'git.sourceControl': deps.toggleGitPanel,
+		'git.diffLayout': deps.toggleDiffView,
 		'view.review': deps.toggleReviewPanel,
 		'view.extensions': deps.togglePluginsPanel,
 		'review.note': deps.reviewNoteChooser,
@@ -198,6 +210,9 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && chord(key) && k === 'l' && !customizes('editor.format')) {
 			return claim(deps.formatActive);
 		}
+		if (key.ctrl && chord(key) && k === 'd' && !customizes('editor.deleteLine')) {
+			return claim(() => deps.lineOp('delete'));
+		}
 		const vimOwnsRedo = deps.config.vim && deps.focus() === 'editor' && deps.vimMode() !== 'insert';
 		if (key.ctrl && k === 'r' && !vimOwnsRedo && !customizes('find.project'))
 			return claim(() => deps.setSearch({ scope: 'project' }));
@@ -212,14 +227,7 @@ export function useAppKeyboard(deps: {
 			return claim(() => deps.setPrompt({ kind: 'newFolder', dir: deps.targetDir() }));
 		}
 		if (key.ctrl && chord(key) && k === 'c' && !customizes('file.copyPath')) {
-			return claim(() => {
-				const path =
-					deps.focus() === 'tree'
-						? (deps.selectedNode()?.path ?? deps.activePath())
-						: (deps.activePath() ?? deps.selectedNode()?.path);
-				if (path) deps.copyPath(path, 'absolute');
-				else deps.say('No file to copy the path of', 'warn');
-			});
+			return claim(() => copyTarget('absolute'));
 		}
 		if (key.ctrl && k === 'n' && !customizes('file.new'))
 			return claim(() => deps.setPrompt({ kind: 'newFile', dir: deps.targetDir() }));
