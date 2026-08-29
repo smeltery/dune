@@ -79,7 +79,7 @@ const NAMED = new Set([
 	'insert',
 ]);
 
-const RESERVED_CTRL = new Set(['c', 'i', 'm', 'j', 'h', '[']);
+const RESERVED_CTRL = new Set(['c', 'i', 'm', 'j', 'h', '[', 'space']);
 
 const keyName = (key: string) =>
 	NAMED.has(key) || FUNCTION_KEY.test(key) || (key.length === 1 && key >= '!' && key <= '~');

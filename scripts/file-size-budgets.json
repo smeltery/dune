@@ -20,7 +20,5 @@
 		"src/ui/overlays/GitPanel.tsx": 500,
 		"src/app/keyboard.ts": 420
 	},
-	"exclude": [
-		"^bun\\.lock$"
-	]
+	"exclude": ["^bun\\.lock$"]
 }

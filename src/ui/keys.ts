@@ -97,6 +97,12 @@ export const KEYS: KeyInfo[] = [
 	{ key: 'Ctrl+X / Ctrl+V', label: 'Cut / paste', section: 'Editing', where: 'editor' },
 	{ key: 'Ctrl+/ · Ctrl+L', label: 'Toggle comment', section: 'Editing', where: 'editor' },
 	{
+		key: 'Ctrl+Space',
+		label: 'Show completions (Tab accepts)',
+		section: 'Editing',
+		where: 'editor',
+	},
+	{
 		key: `Ctrl+${ALT}+S`,
 		label: 'Fold block at cursor',
 		section: 'Editing',

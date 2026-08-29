@@ -183,6 +183,11 @@ export function useAppKeyboard(deps: {
 		if (key.ctrl && k === 'p') return claim(() => deps.setPalette(true));
 		if (k === 'f1') return claim(() => deps.setPalette(true));
 		if (k === 'f12' && !customizes('goto.definition')) return claim(deps.goToDefinition);
+		// Ctrl+Space asks for completions outright. Most terminals send it as a
+		// bare NUL byte, and some parsers surface that with no ctrl flag at all.
+		if (deps.focus() === 'editor' && ((key.ctrl && k === 'space') || key.sequence === '\u0000')) {
+			return claim(deps.completion);
+		}
 		if (key.ctrl && chord(key) && k === 'o' && !customizes('open.cursor'))
 			return claim(deps.openPathUnderCursor);
 		if (key.ctrl && k === 'o' && !customizes('open')) return claim(() => deps.setPicker('files'));
