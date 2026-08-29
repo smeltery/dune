@@ -66,6 +66,7 @@ export function createAppCommands(deps: {
 	previewTheme: (name: ThemeName) => void;
 	cancelThemePreview: () => void;
 	toggleMarkdown: () => void;
+	togglePreview: () => void;
 	toggleWrap: () => void;
 	toggleSidebarPosition: () => void;
 	toggleDiffView: () => void;
@@ -266,6 +267,7 @@ export function createAppCommands(deps: {
 				toggleSidebar: deps.toggleSidebar,
 				collapseSidebar: deps.collapseSidebar,
 				toggleMarkdown: deps.toggleMarkdown,
+				togglePreview: deps.togglePreview,
 				toggleWrap: deps.toggleWrap,
 				toggleSidebarPosition: deps.toggleSidebarPosition,
 				toggleDiffView: deps.toggleDiffView,

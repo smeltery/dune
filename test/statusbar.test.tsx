@@ -105,7 +105,7 @@ describe('the hints follow the focus', () => {
 		const row = bar(await launch(fixture({ 'a.ts': 'x\n' })));
 		expect(row).toContain('F1');
 		expect(row).toContain('Enter');
-		expect(row).toContain('new file');
+		expect(row).toContain('preview');
 	});
 
 	test('the editor advertises editor keys instead', async () => {
@@ -115,8 +115,8 @@ describe('the hints follow the focus', () => {
 
 		expect(row).toContain('save');
 		expect(row).toContain('find');
-		// Tree keys are gone: `Ctrl+N` makes a file, not something to offer mid-buffer.
-		expect(row).not.toContain('new file');
+		// Tree keys are gone: Space previews a file, not something to offer mid-buffer.
+		expect(row).not.toContain('preview');
 		expect(row).not.toContain('open');
 	});
 
@@ -127,7 +127,7 @@ describe('the hints follow the focus', () => {
 
 		await pressEscape(t);
 		await settle(t);
-		expect(bar(t)).toContain('new file');
+		expect(bar(t)).toContain('preview');
 		expect(bar(t)).not.toContain('save');
 	});
 });

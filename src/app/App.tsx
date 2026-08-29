@@ -544,6 +544,7 @@ export function App(props: AppTypes.AppProps) {
 		toggleSidebar,
 		collapseSidebar: () => say(collapseAll() ? 'Collapsed sidebar folders' : 'No folders expanded'),
 		toggleMarkdown,
+		togglePreview: () => preview.toggle(),
 		controls,
 		openSettings: () => setSettingsPage('user'),
 		openProjectSettings: () => setSettingsPage('project'),

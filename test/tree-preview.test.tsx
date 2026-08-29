@@ -1,6 +1,6 @@
 import { expect, setDefaultTimeout, test } from 'bun:test';
 
-import { fixture, launch, press, settle } from './helpers';
+import { fixture, launch, press, runCommand, settle } from './helpers';
 import type { Harness } from './helpers';
 
 setDefaultTimeout(30_000);
@@ -51,4 +51,15 @@ test('Enter opens the file and closes the preview', async () => {
 	await press(t, (input) => input.pressEnter());
 	await until(t, () => !t.captureCharFrame().includes('preview ·'));
 	expect(t.captureCharFrame()).toContain('const opened = 1');
+});
+
+test('the palette Preview file command toggles the same preview', async () => {
+	const t = await launch(fixture({ 'a.ts': 'const fromPalette = 1\n' }));
+	await onFirstFile(t);
+	await runCommand(t, 'Preview file (no tab)');
+	await until(t, () => t.captureCharFrame().includes('const fromPalette = 1'));
+	expect(t.captureCharFrame()).toContain('preview ·');
+	await runCommand(t, 'Preview file (no tab)');
+	await settle(t, 50);
+	expect(t.captureCharFrame()).not.toContain('preview ·');
 });

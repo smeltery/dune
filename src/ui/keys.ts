@@ -152,7 +152,7 @@ export const KEYS: KeyInfo[] = [
 		label: 'New file',
 		section: 'Files & tabs',
 		where: 'all',
-		hint: { pane: 'tree', label: 'new file', rank: 3 },
+		hint: { pane: 'tree', label: 'new file', rank: 10 },
 	},
 	{ key: `Ctrl+${ALT}+N`, label: 'New folder', section: 'Files & tabs', where: 'all' },
 	{ key: `Ctrl+${ALT}+C`, label: 'Copy path of this file', section: 'Files & tabs', where: 'all' },
@@ -178,6 +178,14 @@ export const KEYS: KeyInfo[] = [
 	},
 	{ key: 'Shift+↑ / ↓', label: 'Select a range (in tree)', section: 'File tree', where: 'tree' },
 	{ key: '→ / ←', label: 'Expand / collapse folder', section: 'File tree', where: 'tree' },
+	// Bindable as view.preview, but Space here is tree-local — no global chord replaces it.
+	{
+		key: 'Space · PgUp/Dn',
+		label: 'Preview file, no tab · scroll it',
+		section: 'File tree',
+		where: 'tree',
+		hint: { pane: 'tree', label: 'preview', rank: 3, key: 'Space' },
+	},
 	{ key: 'a / A', label: 'New file / folder (in tree)', section: 'File tree', where: 'tree' },
 	{
 		key: 'r / d',

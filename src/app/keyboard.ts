@@ -116,6 +116,7 @@ export function useAppKeyboard(deps: {
 		},
 		'tabs.close': () => void (deps.activePath() && deps.closeTab(deps.activePath()!)),
 		'view.sidebar': deps.toggleSidebar,
+		'view.preview': deps.previewToggle,
 		'view.markdown': deps.toggleMarkdown,
 		'git.sourceControl': deps.toggleGitPanel,
 		'view.review': deps.toggleReviewPanel,
