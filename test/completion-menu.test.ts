@@ -63,3 +63,10 @@ test('completion detail panel wraps signature, documentation, and origin', () =>
 	expect(layout.documentation).toContain('Draws the current value.');
 	expect(layout.origin).toBe('dune/fake');
 });
+
+test('completionInfo marks deprecated items from the flag or the Deprecated tag', () => {
+	expect(completionInfo({ label: 'a' })!.deprecated).toBe(false);
+	expect(completionInfo({ label: 'a', deprecated: true })!.deprecated).toBe(true);
+	expect(completionInfo({ label: 'a', tags: [1] })!.deprecated).toBe(true);
+	expect(completionInfo({ label: 'a', tags: [2] })!.deprecated).toBe(false);
+});

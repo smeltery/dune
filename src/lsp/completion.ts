@@ -125,6 +125,10 @@ export function kindInfo(kind: number | undefined): { glyph: string; group: Kind
 	return KIND_GROUPS[kind ?? 1] ?? { glyph: '·', group: 'text' };
 }
 
+export function isDeprecated(item: CompletionItem): boolean {
+	return item.deprecated === true || item.tags?.includes(1) === true;
+}
+
 export function stripSnippet(text: string): { text: string; caret: number | null } {
 	let out = '';
 	let at = 0;

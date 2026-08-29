@@ -1,4 +1,5 @@
 import type { CompletionItem } from '../lsp/protocol';
+import { isDeprecated } from '../lsp/completion';
 import { wrapText } from './modal';
 
 export const COMPLETION_MENU_ROWS = 8;
@@ -50,7 +51,7 @@ export function completionInfo(item: CompletionItem | null | undefined): Complet
 		detail: completionSignature(item),
 		documentation: plainMarkup(item.documentation),
 		source: item.labelDetails?.description ?? '',
-		deprecated: item.deprecated === true || item.tags?.includes(1) === true,
+		deprecated: isDeprecated(item),
 	};
 }
 

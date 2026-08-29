@@ -214,7 +214,13 @@ export function spawnLspClient(options: LspClientOptions) {
 					completionItem: {
 						snippetSupport: false,
 						insertReplaceSupport: true,
-						resolveSupport: { properties: ['additionalTextEdits'] },
+						labelDetailsSupport: true,
+						documentationFormat: ['markdown', 'plaintext'],
+						deprecatedSupport: true,
+						tagSupport: { valueSet: [1] },
+						resolveSupport: {
+							properties: ['documentation', 'detail', 'additionalTextEdits'],
+						},
 					},
 				},
 			},

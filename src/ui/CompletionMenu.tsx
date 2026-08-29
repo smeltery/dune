@@ -3,7 +3,7 @@ import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from
 
 import { computeHighlights, segmentsIn, STALE, styleForId } from '../languages/highlight';
 import type { Highlighted } from '../languages/highlight';
-import { kindInfo, matchRuns } from '../lsp/completion';
+import { isDeprecated, kindInfo, matchRuns } from '../lsp/completion';
 import type { CompletionMatch, KindGroup } from '../lsp/completion';
 import { ui } from '../themes';
 import type { CompletionMenuLayout, SignatureLine } from './completionLayout';
@@ -115,6 +115,7 @@ export function CompletionMenu(props: CompletionMenuProps) {
 						const active = () => windowed().start + i() === props.selected;
 						const bg = () => (active() ? ui.treeSelectedBg : ui.panelBg);
 						const kind = kindInfo(match.item.kind);
+						const dim = isDeprecated(match.item);
 						const labelRoom = Math.min(Math.max(match.item.label.length, 1), inner() - 4);
 						const detailRoom = () => inner() - 4 - labelRoom - 2;
 						const detail = () => completionSignature(match.item);
@@ -131,7 +132,7 @@ export function CompletionMenu(props: CompletionMenuProps) {
 									<For each={matchRuns(truncate(match.item.label, labelRoom), match.positions)}>
 										{(run) => (
 											<text
-												fg={run.hit ? ui.accent : active() ? ui.text : ui.dim}
+												fg={run.hit ? ui.accent : dim ? ui.faint : active() ? ui.text : ui.dim}
 												bg={bg()}
 												content={run.text}
 											/>
