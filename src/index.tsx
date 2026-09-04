@@ -2,13 +2,16 @@
 import './core/assets';
 import { render } from '@opentui/solid';
 
-import { App } from './app/App';
+import { Root } from './app/Root';
 import { flagOutput, resolveTarget } from './core/cli';
 import { detectAppearance } from './core/appearance';
 import { loadConfig, loadProjectConfig, resolveConfig, resolvedTheme } from './core/config';
 import { loadLocalThemes } from './core/localThemes';
 import { runUpgrade } from './core/upgrade';
+import { divertWarnings } from './core/warnings';
 import { registerLocalThemes, setTheme, setTransparency } from './themes';
+
+divertWarnings();
 
 const flag = flagOutput(process.argv[2]);
 if (flag !== null) {
@@ -38,7 +41,7 @@ setTransparency(resolved.transparent);
 
 await render(
 	() => (
-		<App
+		<Root
 			rootDir={rootDir}
 			openFile={openFile}
 			openLine={target.line}

@@ -34,6 +34,8 @@ export interface CommandActions {
 	formatActive: () => void;
 	formatOpenFiles: () => void;
 	openFile: () => void;
+	openWorkspace: () => void;
+	switchWorkspace: () => void;
 	openPathUnderCursor: () => void;
 	goToDefinition: () => void;
 	navigateBack: () => void;
@@ -227,6 +229,8 @@ export function buildCommands(actions: CommandActions, ctx: CommandContext): Com
 					hint: `Ctrl+${ALT}+O`,
 					run: actions.openPathUnderCursor,
 				},
+				{ id: 'workspace.open', label: 'Open workspace…', run: actions.openWorkspace },
+				{ id: 'workspace.switch', label: 'Switch workspace…', run: actions.switchWorkspace },
 				{ id: 'file.newDir', label: 'New folder', hint: `Ctrl+${ALT}+N`, run: actions.newFolder },
 				{ id: 'file.rename', label: 'Rename…', hint: 'r', run: actions.rename },
 				{ id: 'file.cut', label: 'Cut for moving', hint: 'x', run: actions.cutForMove },

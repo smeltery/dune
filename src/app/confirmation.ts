@@ -31,6 +31,13 @@ export function confirmationForPrompt(prompt: Prompt): Confirmation | null {
 				danger: true,
 				message: `Unsaved edits in ${prompt.names.join(', ')} will be lost. Quit anyway?`,
 			};
+		case 'workspaceDirty':
+			return {
+				title: 'Unsaved changes',
+				verb: 'switch without saving',
+				danger: true,
+				message: `Unsaved edits in ${prompt.names.join(', ')} will be lost. Switch workspace anyway?`,
+			};
 		case 'undoCommit':
 			return {
 				title: 'Undo last commit',

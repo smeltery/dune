@@ -7,7 +7,7 @@ around it.
 
 ```
 src/
-  index.tsx          entry: flags → load config → apply theme → render <App/>
+  index.tsx          entry: flags → load config → apply theme → render <Root/>
   assets.d.ts        types for `with { type: 'file' }` imports (wasm, .scm)
 build.ts             compiles a standalone binary per platform (Bun.build + Solid plugin)
 bin/dune.js          npm launcher: runs the binary, fetching it first if it is missing
@@ -18,8 +18,10 @@ scripts/
   release.ts         stages the npm package + release archives from dist/
   formula.ts         Homebrew formula for the current version's archives
   app/
+    Root.tsx         remounts <App/> when switching workspace roots
     App.tsx          all application state + keybindings
     commands.ts      command tree  ← the feature index (Ctrl+P palette)
+    workspaces.ts    prompts and dirty-buffer checks for workspace switching
   core/
     cli.ts           argv -> project directory + optional single file
     config.ts        user settings plus per-project overrides in .dune/settings.json
@@ -36,6 +38,8 @@ scripts/
     bulk.ts          delete/copy/move in the background, reporting progress
     clipboard.ts     pbcopy/wl-copy/xclip/xsel wrappers
     session.ts       per-project open tabs + expanded folders, keyed by path
+    warnings.ts      redirects process warnings to the state log before rendering
+    workspaces.ts    workspace switcher entries from git worktrees + recent sessions
     update.ts        startup npm version check (best-effort, opt-out)
     upgrade.ts       `dune update`: which install is running, and how to upgrade it
     assets.ts        pins OpenTUI's tree-sitter asset lookup (side-effect import)

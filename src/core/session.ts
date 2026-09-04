@@ -74,3 +74,10 @@ export function saveSession(rootDir: string, session: Session, now = Date.now())
 		// best-effort — losing the session is never worth interrupting the editor
 	}
 }
+
+export function recentProjects(): { path: string; touchedAt: number }[] {
+	return Object.entries(readAll())
+		.filter((entry): entry is [string, Session & { touchedAt: number }] => exists(entry[0]))
+		.map(([path, session]) => ({ path, touchedAt: session.touchedAt ?? 0 }))
+		.toSorted((a, b) => b.touchedAt - a.touchedAt);
+}

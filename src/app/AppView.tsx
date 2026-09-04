@@ -153,6 +153,7 @@ interface AppViewProps {
 	settingRows: SettingRow[];
 	commitFiles: CommitFile[] | null;
 	branchChoices: Choice[] | null;
+	workspaceChoices: Choice[] | null;
 	branchChoiceTitle: string;
 	branchChoiceMessage: string;
 	conflict: Conflict | null;
@@ -230,6 +231,7 @@ interface AppViewProps {
 	onCommitFiles: (paths: string[]) => void;
 	onCancelCommit: () => void;
 	onPickBranch: (name: string) => void;
+	onPickWorkspace: (path: string) => void;
 	onDeleteBranchChoice: (id: string) => void;
 	onCloseBranchChoices: () => void;
 	onResolveConflict: (choice: string) => void;
@@ -775,6 +777,17 @@ export function AppView(props: AppViewProps) {
 						onPick={props.onPickBranch}
 						onDelete={props.onDeleteBranchChoice}
 						onCancel={props.onCloseBranchChoices}
+					/>
+				)}
+			</Show>
+			<Show when={props.workspaceChoices}>
+				{(choices: () => Choice[]) => (
+					<ChoiceModal
+						title="Switch workspace"
+						message="Enter opens the selected folder in this dune window."
+						choices={choices()}
+						onPick={props.onPickWorkspace}
+						onCancel={props.onCancelPrompt}
 					/>
 				)}
 			</Show>

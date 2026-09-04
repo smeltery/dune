@@ -6,6 +6,7 @@ import type { SearchOptions } from '../core/search';
 import type { PackageManager } from '../lsp/install';
 import type { FetchableInstall } from '../lsp/servers';
 import type { NoteKind } from '../core/review';
+import type { WorkspaceEntry } from '../core/workspaces';
 
 export type Focus = 'tree' | 'editor';
 export type PickerState = 'files' | 'tabs' | null;
@@ -33,6 +34,8 @@ export interface AppProps {
 	initialConfig: Config;
 	projectConfig?: Partial<Config>;
 	checkUpdates?: boolean;
+	notice?: string | null;
+	onOpenWorkspace?: (dir: string) => void;
 }
 
 export interface BufferState {
@@ -83,6 +86,9 @@ export type Prompt =
 	| { kind: 'delete'; targets: string[] }
 	| { kind: 'closeDirty'; paths: string[]; names: string[] }
 	| { kind: 'quitDirty'; names: string[] }
+	| { kind: 'workspaceOpen' }
+	| { kind: 'workspacePick'; entries: WorkspaceEntry[] }
+	| { kind: 'workspaceDirty'; dir: string; names: string[] }
 	| { kind: 'undoCommit'; subject: string }
 	| { kind: 'discardChanges'; path: string; status: FileStatus }
 	| { kind: 'newTag' }

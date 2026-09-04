@@ -17,7 +17,8 @@ project-wide), command palette, built-in and local-plugin themes with transparen
 commit-message history recall, review notes plus read-only pull-request comment fetching from common forges,
 file watching with conflict prompts, in-editor merge-conflict resolution commands, language server diagnostics/completion/status,
 branch comparison as a sidebar panel with a full-width comparison page,
-per-project session restore, and a startup update check.
+workspace switching across git worktrees and recent projects, per-project session restore,
+warning diversion to the state log before the TUI renders, and a startup update check.
 
 Plugin catalog/cache/install primitives live in `src/core/market/`; catalog entries may
 advertise appearance assets, language servers, and filetypes. Local language server

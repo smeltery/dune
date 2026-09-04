@@ -27,6 +27,8 @@ export function createAppCommandTree(deps: {
 	activePath: Accessor<string | null>;
 	cursor: Accessor<{ line: number; col: number }>;
 	setPicker: Setter<PickerState>;
+	openWorkspace: () => void;
+	switchWorkspace: () => void;
 	setPrompt: Setter<Prompt>;
 	setHistory: Setter<HistoryRequest>;
 	setSearch: Setter<{ scope: 'file' | 'project'; replacing?: boolean } | null>;
@@ -116,6 +118,8 @@ export function createAppCommandTree(deps: {
 		formatActive: deps.formatActive,
 		formatOpenFiles: deps.formatOpenFiles,
 		setPicker: (kind) => deps.setPicker(kind),
+		openWorkspace: deps.openWorkspace,
+		switchWorkspace: deps.switchWorkspace,
 		activePath: deps.activePath,
 		activeLine: () =>
 			deps.buffers[deps.activePath()!]?.content.split('\n')[deps.cursor().line] ?? null,

@@ -31,6 +31,8 @@ export function createAppCommands(deps: {
 	formatActive: () => void;
 	formatOpenFiles: () => void;
 	setPicker: (kind: 'files' | 'tabs') => void;
+	openWorkspace: () => void;
+	switchWorkspace: () => void;
 	activePath: () => string | null;
 	activeLine: () => string | null;
 	cursor: () => { line: number; col: number };
@@ -221,6 +223,8 @@ export function createAppCommands(deps: {
 				formatActive: deps.formatActive,
 				formatOpenFiles: deps.formatOpenFiles,
 				openFile: () => deps.setPicker('files'),
+				openWorkspace: deps.openWorkspace,
+				switchWorkspace: deps.switchWorkspace,
 				openPathUnderCursor: () =>
 					openPathUnderCursor({
 						activePath: deps.activePath,

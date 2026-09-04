@@ -10,6 +10,7 @@ import {
 	type StatusEntry,
 	type Upstream,
 } from '../core/git';
+import { shortenHome } from '../core/workspaces';
 import { parseReviewKind, reviewLineTarget, reviewNotePrompt } from './reviewPrompts';
 import { discoverRepos, repoOf } from '../core/vcs/repos';
 import { invalidateSyntaxStyle } from '../languages/highlight';
@@ -48,6 +49,7 @@ import { editedBuffer } from './state/buffers';
 import { createComparison } from './state/comparison';
 import { createTreeSelection } from './treeSelection';
 import { hiddenTreeNodes as hiddenNodes } from './treeVisibility';
+import { createWorkspaces } from './workspaces';
 import type * as AppTypes from './types';
 export function App(props: AppTypes.AppProps) {
 	const renderer = useRenderer();
@@ -108,7 +110,9 @@ export function App(props: AppTypes.AppProps) {
 	const [cursor, setCursor] = createSignal({ line: 0, col: 0 });
 	const [busy, setBusy] = createSignal<AppTypes.BusyState>(null);
 	const [status, setStatus] = createSignal<AppTypes.StatusMessage>(
-		pluginStatus ?? { msg: READY, tone: 'info' },
+		props.notice
+			? { msg: props.notice, tone: 'info' }
+			: (pluginStatus ?? { msg: READY, tone: 'info' }),
 	);
 	const nodes = createMemo(() => flattenVisible(rootDir, expanded(), hiddenNodes(rootDir, config)));
 	const activeBuffer = () => (activePath() ? buffers[activePath()!] : undefined);
@@ -344,6 +348,31 @@ export function App(props: AppTypes.AppProps) {
 		const repos = discoverRepos(rootDir, config.gitScanDepth);
 		return repos.length === 1 ? repos[0]! : null;
 	};
+	const repos = () => {
+		const active = activeRepo();
+		return [
+			...new Set([...(active ? [active] : []), ...discoverRepos(rootDir, config.gitScanDepth)]),
+		];
+	};
+	const workspaces = createWorkspaces({
+		rootDir,
+		repos,
+		dirtyPaths: () =>
+			Object.entries(buffers)
+				.filter(([, buffer]) => buffer.dirty)
+				.map(([path]) => path),
+		setPrompt,
+		say,
+		open: props.onOpenWorkspace,
+	});
+	const workspaceChoices = createMemo(() => {
+		const p = prompt();
+		if (p?.kind !== 'workspacePick') return null;
+		return p.entries.map((entry) => ({
+			id: entry.path,
+			label: `${entry.current ? '* ' : '  '}${entry.name}  ${shortenHome(entry.path)}${entry.branch ? `  ${entry.branch}` : ''}  ${entry.source}`,
+		}));
+	});
 	const comparison = createComparison({ rootDir, activeRepo, branch, diffBase, say });
 	createEffect(on(gitRevision, () => comparison.refresh(), { defer: true }));
 	/** Open the sidebar on one of its views, as the tab strip above it does. */
@@ -524,6 +553,8 @@ export function App(props: AppTypes.AppProps) {
 		formatActive: documentActions.formatActive,
 		formatOpenFiles: documentActions.formatOpenFiles,
 		setPicker,
+		openWorkspace: workspaces.openPrompt,
+		switchWorkspace: workspaces.pick,
 		activePath,
 		cursor,
 		openFile,
@@ -731,6 +762,11 @@ export function App(props: AppTypes.AppProps) {
 			applyProject(p.paths, p.query, p.replacement, p.options);
 			return;
 		}
+		if (p?.kind === 'workspaceDirty') {
+			setPrompt(null);
+			workspaces.switchTo(p.dir, true);
+			return;
+		}
 		confirmPrompt();
 	};
 	return (
@@ -826,6 +862,7 @@ export function App(props: AppTypes.AppProps) {
 				settingRows={settingRows()}
 				commitFiles={gitCommands.commitFiles()}
 				branchChoices={gitCommands.branchChoices()}
+				workspaceChoices={workspaceChoices()}
 				branchChoiceTitle={gitCommands.branchChoiceTitle()}
 				branchChoiceMessage={gitCommands.branchChoiceMessage()}
 				conflict={conflict()}
@@ -900,6 +937,11 @@ export function App(props: AppTypes.AppProps) {
 				onQuit={quit}
 				onSubmitPrompt={(value) => {
 					if (prompt()?.kind === 'gotoLine') navigation.mark();
+					if (prompt()?.kind === 'workspaceOpen') {
+						setPrompt(null);
+						workspaces.switchTo(value);
+						return;
+					}
 					submitPrompt(value);
 				}}
 				onCancelPrompt={() => setPrompt(null)}
@@ -949,6 +991,10 @@ export function App(props: AppTypes.AppProps) {
 				onCommitFiles={gitCommands.startCommit}
 				onCancelCommit={gitCommands.cancelCommit}
 				onPickBranch={gitCommands.pickBranch}
+				onPickWorkspace={(path) => {
+					setPrompt(null);
+					workspaces.switchTo(path);
+				}}
 				onDeleteBranchChoice={gitCommands.deleteChoice}
 				onCloseBranchChoices={gitCommands.closeBranchChoices}
 				onResolveConflict={resolveConflict}

@@ -14,6 +14,7 @@ const PROMPT_TITLES: Partial<Record<NonNullable<Prompt>['kind'], string>> = {
 	appearancePluginRegistry: 'Plugin registry URL',
 	reviewNote: 'Review note',
 	reviewReply: 'Reply',
+	workspaceOpen: 'Open workspace folder',
 	gotoLine: 'Go to line',
 	commitMessage: 'Commit message',
 	commitAmend: 'Amend commit message',

@@ -40,6 +40,11 @@ export interface Branch {
 	upstream: string | null;
 }
 
+export interface Worktree {
+	path: string;
+	branch: string | null;
+}
+
 /**
  * Queries run synchronously because they sit behind gutter marks, tree marks and
  * the status bar. Mutations run asynchronously below, so push/fetch/stash/commit
@@ -148,6 +153,23 @@ export function listBranches(cwd: string): Branch[] {
 			};
 		})
 		.filter((branch) => !branch.name.endsWith('/HEAD'));
+}
+
+export function worktrees(cwd: string): Worktree[] {
+	const run = git(cwd, ['worktree', 'list', '--porcelain'], 3000);
+	if (run.status !== 0) return [];
+	const trees: Worktree[] = [];
+	for (const block of run.stdout.split('\n\n')) {
+		let path: string | null = null;
+		let branch: string | null = null;
+		for (const line of block.split('\n')) {
+			if (line.startsWith('worktree ')) path = line.slice('worktree '.length);
+			else if (line.startsWith('branch refs/heads/'))
+				branch = line.slice('branch refs/heads/'.length);
+		}
+		if (path) trees.push({ path, branch });
+	}
+	return trees;
 }
 
 export function localBranchName(name: string): string {
