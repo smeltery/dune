@@ -196,6 +196,31 @@ test('the default registry is an https directory', () => {
 	expect(MARKET_URL.endsWith('/')).toBe(true);
 });
 
+test('the bundled web catalog serves installable plugin manifests', async () => {
+	const root = join(import.meta.dir, '..', '..', 'web', 'public', 'plugins');
+	const catalog = parseCatalog(JSON.parse(readFileSync(join(root, 'index.json'), 'utf8')));
+	const bodies = Object.fromEntries(
+		catalog.map((entry) => [
+			`${REGISTRY}${entry.id}/plugin.json`,
+			JSON.parse(readFileSync(join(root, entry.id, 'plugin.json'), 'utf8')),
+		]),
+	);
+
+	expect(catalog.map((entry) => entry.id)).toEqual([
+		'astro-theme',
+		'bushland',
+		'cocoa-butter',
+		'malibu',
+		'relentless',
+		'sequoia',
+		'serendipity',
+	]);
+	const results = await Promise.all(
+		catalog.map((entry) => fetchPlugin(entry.id, { registry: REGISTRY, fetcher: serving(bodies) })),
+	);
+	expect(results.every((result) => result.ok)).toBe(true);
+});
+
 test('a manifest is fetched from the plugin directory and validated', async () => {
 	const seen: string[] = [];
 	const result = await fetchPlugin('mono', {

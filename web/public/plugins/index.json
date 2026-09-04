@@ -1,0 +1,91 @@
+{
+	"plugins": [
+		{
+			"id": "astro-theme",
+			"name": "Astro",
+			"version": "1.0.0",
+			"description": "Astro — Michael Andreuzza’s take on the Astro Build palette, dark and light. Palette from https://github.com/michael-andreuzza/astro-theme (MIT).",
+			"provides": { "themes": ["astro-dark", "astro-light"], "icons": [], "filetypes": [] },
+			"categories": ["theme"]
+		},
+		{
+			"id": "bushland",
+			"name": "Bushland",
+			"version": "1.0.0",
+			"description": "Bushland — earthy, calm and cozy. Palette from https://github.com/michael-andreuzza/bushland (MIT), by Michael Andreuzza.",
+			"provides": { "themes": ["bushland"], "icons": [], "filetypes": [] },
+			"categories": ["theme"]
+		},
+		{
+			"id": "cocoa-butter",
+			"name": "Cocoa Butter",
+			"version": "1.0.0",
+			"description": "Cocoa Butter — inspired by artisan chocolate and toasted nuts, in Burnt Chestnut and Almond Cream. Palette from https://github.com/michael-andreuzza/cocoabutter (MIT), by Michael Andreuzza.",
+			"provides": {
+				"themes": ["cocoa-burnt-chestnut", "cocoa-almond-cream"],
+				"icons": [],
+				"filetypes": []
+			},
+			"categories": ["theme"]
+		},
+		{
+			"id": "malibu",
+			"name": "Malibu",
+			"version": "1.0.0",
+			"description": "Malibu — a retro theme inspired by the surfing days in Malibu beach, in Sunset and Sunrise. Palette from https://github.com/michael-andreuzza/malibutheme (MIT), by Michael Andreuzza.",
+			"provides": { "themes": ["malibu-sunset", "malibu-sunrise"], "icons": [], "filetypes": [] },
+			"categories": ["theme"]
+		},
+		{
+			"id": "relentless",
+			"name": "Relentless",
+			"version": "1.0.0",
+			"description": "Relentless — elegant, simple and electric, in Midnight and Sunset. Palette from https://github.com/michael-andreuzza/relentless (MIT), by Michael Andreuzza.",
+			"provides": {
+				"themes": ["relentless-midnight", "relentless-sunset"],
+				"icons": [],
+				"filetypes": []
+			},
+			"categories": ["theme"]
+		},
+		{
+			"id": "sequoia",
+			"name": "Sequoia",
+			"version": "1.0.0",
+			"description": "Sequoia — black, elegant and monochrome, in six variants: Moonlight, Monochrome and Retro, each dark and light. Palette from https://github.com/Sequoia-Theme/vs-code (MIT), by Michael Andreuzza.",
+			"provides": {
+				"themes": [
+					"sequoia-moonlight",
+					"sequoia-moonlight-light",
+					"sequoia-monochrome",
+					"sequoia-monochrome-light",
+					"sequoia-retro",
+					"sequoia-retro-light"
+				],
+				"icons": [],
+				"filetypes": []
+			},
+			"categories": ["theme"]
+		},
+		{
+			"id": "serendipity",
+			"name": "Serendipity",
+			"version": "1.0.0",
+			"description": "Serendipity — an elegant, minimal palette in seven variants. Palette from https://github.com/Serendipity-Theme/vs-code and https://github.com/michael-andreuzza/old-serendipity (MIT), by Michael Andreuzza.",
+			"provides": {
+				"themes": [
+					"serendipity-midnight",
+					"serendipity-midnight-electric",
+					"serendipity-sunset",
+					"serendipity-morning",
+					"serendipity-midnight-v1",
+					"serendipity-sunset-v1",
+					"serendipity-morning-v1"
+				],
+				"icons": [],
+				"filetypes": []
+			},
+			"categories": ["theme"]
+		}
+	]
+}
